@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+	<fieldset>
+
+              <field name="id" type="text" default="0" label="COM_FLOTA_FORM_LBL_CLIENTE_ID"
+            readonly="true" class="readonly"
+            description="JGLOBAL_FIELD_ID_DESC" /> 
+
+       <field name="created_by" type="createdby" default="" 
+            label="COM_FLOTA_FORM_LBL_CLIENTE_CREATED_BY"
+            description="COM_FLOTA_FORM_DESC_CLIENTE_CREATED_BY"  /> 
+        <field name="nombre" type="text" label="NOMBRE" description="NOMBRE" required="true" class="nombre_cliente" />
+        <field name="apellidos" type="text" label="APELLIDOS" description="APELLIDOS" required="true" class="nombre_cliente" /> 
+        <field name="telefono" type="text" label="TELEFONO" description="TELEFONO"  required="true" class="telefono_cliente"  />
+        <field name="celular" type="text" label="CELULAR" description="CELULAR"  required="true" class="celular_cliente"  /> 
+        <field name="direccion" type="text" label="DIRECCION" description="DIRECCION" class="direccion_cliente" /> 
+        <field name="fecha_nacimiento" type="text" label="FECHA DE NACIMIENTO" description="FECHA DE NACIMIENTO" class="fecha_nacimiento_cliente" /> 
+        <field name="tipo_documento" type="list" label="TIPO_DOCUMENTO" description="TIPO_DOCUMENTO"  default="Cédula de ciudadania" required="true" class="tipo_documento" option_on="Yes" option_off="Yes">
+            <option value="Cédula de ciudadania">Cédula de ciudadania</option>
+            <option value="Pasaporte">Pasaporte</option>
+        </field> 
+        <field name="documento" type="text" label="DOCUMENTO" description="DOCUMENTO" required="true" class="documento" /> 
+        <field name="puntos" type="text" size="40" class="inputbox" label="PUNTOS" description="PUNTOS"  default="0"  filter="safehtml" /> 
+        <field name="municipio" type="text" class="inputbox" label="MUNICIPIO" description="MUNICIPIO" required="true"  />
+
+
+        <field name="boletin" type="text" label="Boletin" description="Boletin" 
+            class="boletin_cliente">
+        </field>
+
+
+
+ <field name="usuario" type="foreignkey" class="inputbox"
+            label="COM_FLOTA_FORM_LBL_CLIENTE_USUARIO"
+            description="COM_FLOTA_FORM_DESC_CLIENTE_USUARIO" input_type="list" table="#__users" key_field="id" value_field="name"  /> 
+
+         <field
+        name="state"
+        type="list"
+        label="JSTATUS"
+        description="JFIELD_PUBLISHED_DESC"
+        class="inputbox"
+        size="1"
+        default="1">
+        <option value="1">JPUBLISHED</option>
+        <option value="0">JUNPUBLISHED</option>
+        <option value="2">JARCHIVED</option>
+        <option value="-2">JTRASHED</option>
+    </field> 
+
+                        <field name="checked_out" type="hidden" filter="unset" />
+        <field name="checked_out_time" type="hidden" filter="unset" /> 
+
+ </fieldset> 
+
+ <fieldset
+                        name="accesscontrol">
+                       <field name="asset_id" type="hidden" filter="unset" />
+                       <field name="rules"
+                            type="rules"
+                            label="JFIELD_RULES_LABEL"
+                            translate_label="false"
+                            filter="rules"
+                            validate="rules"
+                            class="inputbox"
+                            component="com_flota"
+                            section="cliente"
+                        />
+
+	</fieldset>
+
+</form>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+	<fieldset>
+		<field name="id" type="text" default="" label="ID" readonly="true" class="readonly" description="ID" /> 
+        <field name="clientes_id" type="text" default="" label="CLIENTE"  description="CLIENTE" /> 
+        <field name="fecha" type="text" default="" label="FECHA"  description="FECHA" /> 
+        <field name="valor" type="text" default="0" label="VALOR"  description="VALOR" /> 
+        <field name="estados_id" type="text" default="0" label="ESTADO"  description="ESTADO" /> 
+        <field name="id_transaccion" type="text" default="0" label="ID TRANSACCION"  description="ID TRANSACCION" /> 
+        <field name="codigo_respuesta" type="text" default="0" label="CODIGO  RESPUESTA"  description="CODIGO RESPUESTA" /> 
+        <field name="codigo_autorizacion" type="text" default="0" label="CODIGO AUTORIZACION"  description="CODIGO AUTORIZACION" /> 
+        <field name="codigo_trazabilidad" type="text" default="0" label="CODIGO TRAZABILIDAD"  description="CODIGO TRAZABILIDAD" /> 
+        <field name="nombre_estado" type="text" default="" label="NOMBRE ESTADO"  description="NOMBRE ESTADO" /> 
+        <field name="nombre_banco" type="text" default="" label="NOMBRE BANCO"  description="NOMBRE BANCO" /> 
+        <field name="fecha_procesamiento" type="text" default="0" label="FECHA PROCESAMIENTO"  description="FECHA PROCESAMIENTO" /> 
+        <field name="mensaje" type="text" default="" label="MENSAJE"  description="MENSAJE" /> 
+        <field name="ip" type="text" default="" label="IP"  description="IP" /> 
+        <field name="metodo_pago" type="text" default="" label="METODO DE PAGO"  description="METODO DE PAGO" /> 
+        <field name="subtotal" type="text" default="" label="SUBTOTAL"  description="SUBTOTAL" /> 
+        <field name="bonos_id" type="text" default="" label="ID BONO"  description="ID BONO" /> 
+        <field name="descuento" type="text" default="" label="DESCUENTO"  description="DESCUENTO" /> 
+        <field name="cupon" type="text" default="" label="CUPON"  description="CUPON" /> 
+
+	</fieldset>
+
+</form>

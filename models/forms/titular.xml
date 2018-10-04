@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+	<fieldset>
+    <field name="id" type="text" default="0" label="Id" readonly="true" class="readonly" description="ID" /> 
+    <field name="nombres" type="text" label="NOMBRE" description="NOMBRE" required="true" class="nombre_cliente" /> 
+    <field name="apellidos" type="text" label="APELLIDOS" description="APELLIDOS" required="true" class="nombre_cliente" /> 
+    <field name="telefono" type="text" label="TELEFONO" description="TELEFONO"  required="true"  class="telefono_cliente" filter="tel" /> 
+    <field name="direccion" type="text"  label="DIRECCION" description="DIRECCION" class="direccion_cliente" /> 
+    <field name="documento" type="text" label="DOCUMENTO" description="DOCUMENTO"  required="true" class="documento" /> 
+    <field name="departamento" type="text" label="DEPARTAMENTO" description="DEPARTAMENTO"  required="true" class="departamento" />
+    <field name="municipio" type="text" label="MUNICIPIO" description="MUNICIPIO"  required="true" class="municipio" />   
+    <field name="clientes_id" type="foreignkey" class="inputbox" label="CLIENTE" description="CLIENTE" input_type="list" table="#__flota_clientes" key_field="id" value_field="nombre"  /> 
+  </fieldset>
+</form>

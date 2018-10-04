@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+    <layout title="Viajes del Cliente" option="View">
+        <message>Mis Viajes</message>
+    </layout>
+</metadata>

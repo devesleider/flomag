@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+	<fieldset>
+
+              <field name="id" type="text" default="0" label="COM_FLOTA_FORM_LBL_RUTA_ID"
+            readonly="true" class="readonly"
+            description="JGLOBAL_FIELD_ID_DESC" /> 
+
+       <field name="created_by" type="createdby" default="" 
+            label="COM_FLOTA_FORM_LBL_RUTA_CREATED_BY"
+            description="COM_FLOTA_FORM_DESC_RUTA_CREATED_BY"  /> 
+
+ <field name="origen" type="foreignkey" class="inputbox"
+            label="COM_FLOTA_FORM_LBL_RUTA_ORIGEN"
+            description="COM_FLOTA_FORM_DESC_RUTA_ORIGEN" input_type="list" table="#__flota_municipios" key_field="id" value_field="name"  required="true"  /> 
+
+       <field name="filter_origen" type="sql" class="inputbox"
+            onchange="this.form.submit();"
+            query="SELECT 0 AS `id`, '- Please select Origen -' AS `name` UNION SELECT `id`, `municipio` FROM `#__flota_municipios`" key_field="id" value_field="name"
+             /> 
+
+ <field name="destino" type="foreignkey" class="inputbox"
+            label="COM_FLOTA_FORM_LBL_RUTA_DESTINO"
+            description="COM_FLOTA_FORM_DESC_RUTA_DESTINO" input_type="list" table="#__flota_municipios" key_field="id" value_field="name"  required="true"  /> 
+
+       <field name="filter_destino" type="sql" class="inputbox"
+            onchange="this.form.submit();"
+            query="SELECT 0 AS `id`, '- Please select Destino -' AS `name` UNION SELECT `id`, `municipio` FROM `#__flota_municipios`" key_field="id" value_field="name"
+             /> 
+
+       <field name="distancia" type="text" size="40" class="inputbox"
+        
+            label="COM_FLOTA_FORM_LBL_RUTA_DISTANCIA"
+            description="COM_FLOTA_FORM_DESC_RUTA_DISTANCIA" 
+         default="0" 
+        
+        
+        filter="safehtml" /> 
+
+       <field name="tiempo_horas" type="text" size="40" class="inputbox"
+        
+            label="COM_FLOTA_FORM_LBL_RUTA_TIEMPO_HORAS"
+            description="COM_FLOTA_FORM_DESC_RUTA_TIEMPO_HORAS" 
+         default="0" 
+        
+        
+        filter="safehtml" /> 
+
+       <field name="tiempo_minutos" type="text" size="40" class="inputbox"
+        
+            label="COM_FLOTA_FORM_LBL_RUTA_TIEMPO_MINUTOS"
+            description="COM_FLOTA_FORM_DESC_RUTA_TIEMPO_MINUTOS" 
+         default="0" 
+        
+        
+        filter="safehtml" /> 
+
+       <field name="precio" type="text" size="40" class="inputbox"
+        
+            label="COM_FLOTA_FORM_LBL_RUTA_PRECIO"
+            description="COM_FLOTA_FORM_DESC_RUTA_PRECIO" 
+         default="0" 
+        
+         required="true" 
+        filter="safehtml" /> 
+
+       <field name="fecha" type="calendar"
+                
+            label="COM_FLOTA_FORM_LBL_RUTA_FECHA"
+            description="COM_FLOTA_FORM_DESC_RUTA_FECHA" 
+                 default="0000-00-00" 
+                
+                
+            class="fecha_ruta">
+     <group label="">
+                <option value=""></option>
+     </group>
+        </field> 
+
+       <field name="hora" type="text"
+                
+            label="COM_FLOTA_FORM_LBL_RUTA_HORA"
+            description="COM_FLOTA_FORM_DESC_RUTA_HORA" 
+                
+                
+                
+            class="hora_especial">
+     <group label="">
+                <option value=""></option>
+     </group>
+        </field> 
+
+       <field name="comentarios" type="textarea"
+            label="COM_FLOTA_FORM_LBL_RUTA_COMENTARIOS"
+            description="COM_FLOTA_FORM_DESC_RUTA_COMENTARIOS"                
+            class="comentarios"
+            cols="20"
+            rows="20"
+            option_on="Yes"
+            option_off="Yes">
+        </field> 
+
+        <field name="paradas" type="textarea"
+            label="Paradas"
+            description="Paradas"                
+            class="paradas"
+            cols="20"
+            rows="20"
+            option_on="Yes"
+            option_off="Yes">
+        </field> 
+
+ <field name="tipo_servicio" type="foreignkey" class="inputbox"
+            label="COM_FLOTA_FORM_LBL_RUTA_TIPO_SERVICIO"
+            description="COM_FLOTA_FORM_DESC_RUTA_TIPO_SERVICIO" input_type="list" table="#__flota_servicios" key_field="id" value_field="name"  required="true"  /> 
+
+       <field name="filter_tipo_servicio" type="sql" class="inputbox"
+            onchange="this.form.submit();"
+            query="SELECT 0 AS `id`, '- Please select Servicio -' AS `name` UNION SELECT `id`, `nombre` FROM `#__flota_servicios`" key_field="id" value_field="name"
+             /> 
+
+         <field
+        name="state"
+        type="list"
+        label="JSTATUS"
+        description="JFIELD_PUBLISHED_DESC"
+        class="inputbox"
+        size="1"
+        default="1">
+        <option value="1">JPUBLISHED</option>
+        <option value="0">JUNPUBLISHED</option>
+        <option value="2">JARCHIVED</option>
+        <option value="-2">JTRASHED</option>
+    </field> 
+
+                        <field name="checked_out" type="hidden" filter="unset" />
+        <field name="checked_out_time" type="hidden" filter="unset" />
+
+	</fieldset>
+
+</form>

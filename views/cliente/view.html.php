@@ -1,0 +1,135 @@
+<?php
+
+/**
+ * @version     1.0.0
+ * @package     com_flota
+ * @copyright   Copyright (C) 2015. Todos los derechos reservados.
+ * @license     Licencia Pública General GNU versión 2 o posterior. Consulte LICENSE.txt
+ * @author      Ricardo Casas <contacto@influenciaweb.com> - http://www.influenciaweb.com
+ */
+// No direct access
+defined('_JEXEC') or die;
+
+jimport('joomla.application.component.view');
+require_once JPATH_COMPONENT_SITE.'/models/tiquete.php'; 
+
+
+/**
+ * View to edit
+ */
+class FlotaViewCliente extends JViewLegacy {
+
+    protected $state;
+    protected $item;
+    protected $form;
+    protected $params;
+
+    /**
+     * Display the view
+     */
+    public function display($tpl = null) {
+
+        $app   = JFactory::getApplication();
+        $user  = JFactory::getUser();
+        $model = $this->getModel();
+
+        if (!$user->guest) {
+            $cid            = $app->input->get->get('cid', '', 'int');
+            $id             = ($cid!=null) ? $cid : $model->getId($user->id);
+            $this->state    = $this->get('State');
+            $this->item     = $model->getData($id);
+            $this->params   = $app->getParams('com_flota');
+
+            if (!empty($this->item)) {
+                
+    		$this->form		= $this->get('Form');
+            }
+
+            if (count($errors = $this->get('Errors'))) {
+                throw new Exception(implode("\n", $errors));
+            }
+
+            if ($this->_layout == 'edit') {
+                $authorised = $user->authorise('core.create', 'com_flota');
+                if ($authorised !== true) {
+                    throw new Exception(JText::_('JERROR_ALERTNOAUTHOR'));
+                }
+            }
+
+            if ($this->_layout == 'mis-puntos') {
+                $this->puntos = $this->get('Puntos');
+            }
+
+            if ($this->_layout == 'mis-viajes') {
+                $mtiquetes      = JModelLegacy::getInstance( 'tiquete', 'FlotaModel' );
+                $this->tiquetes = $mtiquetes->getTiquetes();
+            }
+
+            if ($this->_layout == 'mis-pagos') {
+                $mpagos      = JModelLegacy::getInstance( 'pagoform', 'FlotaModel' );
+                $this->pagos = $mpagos->getPagos();
+            }
+
+            if($this->_layout == 'pago'){
+                $pid            = $app->input->get->get('pid', '', 'int');
+                $mpagos         = JModelLegacy::getInstance( 'pagoform', 'FlotaModel' );
+                $mtiquetes      = JModelLegacy::getInstance( 'tiquete', 'FlotaModel' );
+                $this->item     = $mpagos->getPago($pid);
+                $this->rutas    = $mtiquetes->getTiquetes($this->item->id);
+            }
+        }
+
+        $this->_prepareDocument();
+
+        parent::display($tpl);
+    }
+
+    public function getSillas($id=null){
+        if($id!=null){
+            $model = JModelLegacy::getInstance( 'silla', 'FlotaModel' );
+            return $model->getSillas($id);
+        }
+        return null;
+    }
+
+    /**
+     * Prepares the document
+     */
+    protected function _prepareDocument() {
+        $app            = JFactory::getApplication();
+        $this->params   = $app->getParams('com_flota');
+        $menus          = $app->getMenu();
+        $title          = null;
+
+        // Because the application sets a default page title,
+        // we need to get it from the menu item itself
+        $menu = $menus->getActive();
+        if ($menu) {
+            $this->params->def('page_heading', $this->params->get('page_title', $menu->title));
+        } else {
+            $this->params->def('page_heading', JText::_('COM_FLOTA_DEFAULT_PAGE_TITLE'));
+        }
+        $title = $this->params->get('page_title', '');
+        if (empty($title)) {
+            $title = $app->get('sitename');
+        } elseif ($app->get('sitename_pagetitles', 0) == 1) {
+            $title = JText::sprintf('JPAGETITLE', $app->get('sitename'), $title);
+        } elseif ($app->get('sitename_pagetitles', 0) == 2) {
+            $title = JText::sprintf('JPAGETITLE', $title, $app->get('sitename'));
+        }
+        $this->document->setTitle($title);
+
+        if ($this->params->get('menu-meta_description')) {
+            $this->document->setDescription($this->params->get('menu-meta_description'));
+        }
+
+        if ($this->params->get('menu-meta_keywords')) {
+            $this->document->setMetadata('keywords', $this->params->get('menu-meta_keywords'));
+        }
+
+        if ($this->params->get('robots')) {
+            $this->document->setMetadata('robots', $this->params->get('robots'));
+        }
+    }
+
+}
