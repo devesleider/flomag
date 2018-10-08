@@ -215,9 +215,7 @@ class FlotaModelPagoForm extends JModelForm
 	public function save($data)
 	{
 		$id    = (!empty($data['id'])) ? $data['id'] : (int) $this->getState('pago.id');
-		$state = (!empty($data['state'])) ? 1 : 0;
 		$user  = JFactory::getUser();
-
 		if ($id)
 		{
 			//Check the user can edit this item
@@ -227,8 +225,6 @@ class FlotaModelPagoForm extends JModelForm
 				$data['state'] = 0;
 			}
 		}
-
-
 		$table = $this->getTable();
 		if ($table->save($data) === true)
 		{
@@ -236,6 +232,7 @@ class FlotaModelPagoForm extends JModelForm
 		}
 		else
 		{
+			print_r("no se pudo");
 			return false;
 		}
 

@@ -63,85 +63,6 @@ class FlotaControllerPagoForm extends FlotaController
 	 */
 	public function save(){
 		JSession::checkToken() or jexit(JText::_('JINVALID_TOKEN'));
-
-		$seed = date('c');
-        if (function_exists('random_bytes')) {
-        $nonce = bin2hex(random_bytes(16));
-      } elseif (function_exists('openssl_random_pseudo_bytes')) {
-        $nonce = bin2hex(openssl_random_pseudo_bytes(16));
-      } else {
-        $nonce = mt_rand();
-      }
-      
-      $secretKey = '024h1IlD';
-      
-      $nonceBase64 = base64_encode($nonce);
-      
-      $tranKey = base64_encode(sha1($nonce . $seed . $secretKey, true));
-      
-      $request = [
-        'auth' => [
-        'login' => '6dd490faf9cb87a9862245da41170ff2',
-        'seed' => date('c'),
-        'nonce' => $nonceBase64,
-        'tranKey' => $tranKey,
-        ],
-      
-       'buyer' => [
-           'name' => 'John',
-           'surname' => 'Doe',
-           'email' => 'john.doe@example.com',
-           'address' => [
-               'city' => 'Bogotá',
-               'street' => 'Calle 14 # 13b - 03'
-           ]
-       ],
-       'payment' => [
-           'reference' => '587548758',
-           'description' => 'Testing payment',
-           'amount' => [
-                'currency' => 'COP',
-                'total' => 10000
-            ]
-      
-      ],
-      
-        'expiration' => date('c', strtotime('+2 days')),
-        'returnUrl' => 'http://example.com/response?reference=',
-        'ipAddress' => '127.0.0.1',
-        'userAgent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36',
-      ];
-      
-      //return $request;
-      
-      
-      $url = 'https://test.placetopay.com/redirection/api/session';
-      
-      
-      //Se inicia. el objeto CUrl
-      $ch = curl_init($url);
-      
-      //creamos el json a partir del arreglo
-      $jsonDataEncoded = json_encode($request);
-      
-      
-      //Indicamos que nuestra petición sera Post
-      curl_setopt($ch, CURLOPT_POST, 1);
-      
-      //para que la peticion no imprima el resultado como un echo comun, y podamos manipularlo
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-      
-      //Adjuntamos el json a nuestra petición
-      curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
-      
-      
-        //Agregar los encabezados del contenido
-      curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'User-Agent: cUrl Testing'));
-      
-      //Ejecutamos la petición
-      $result = curl_exec($ch);
-      $res= json_decode($result);
-      header('Location: '.$res->processUrl);
       //print_r($res->processUrl); 
 
 		$app       = JFactory::getApplication()->input;
@@ -318,247 +239,150 @@ class FlotaControllerPagoForm extends FlotaController
 		//SE GUARDAN LOS DATOS DEL TITULAR
 		$ObTitular       = $titular->validate($form_titular, $info_titular);
 		$return_titular  = $titular->save($ObTitular);
-
-		if($tiquete['metodo_pago']==1){
+		//En esta parte estaba el pago con web services y targetas de credito
 			
-			//informacion tarjeta
-			$franquicia = $jinput->post->get('franquicia', '', 'INT');
-			$numero_tarjeta = $jinput->post->get('numero_tarjeta', '', 'STRING');
-			$mes_vencimiento = $jinput->post->get('mes_vencimiento', '', 'STRING');
-			$anio_vencimiento = $jinput->post->get('anio_vencimiento', '', 'INT');
-			$tipo_cuenta = $jinput->post->get('tipo_cuenta', 'C', 'CMD');
-			$codigo_tarjeta = $jinput->post->get('codigo_tarjeta', '', 'INT');	
+		$tipo_documento_titular = $jinput->post->get('tipo_documento', '', 'STRING');
+		$banco = $jinput->post->get('banco', '', 'STRING');
+		$component = $app->get('option');
+		$params    = JComponentHelper::getParams($component);
+		//$usuario_web_service 		= 'icapi';
+		//$pass_web_service 	 		= 'qVPiCfJ8';
+		//$wsdl 						= "https://secure.allegraplatform.com/GatewayIatai/PSE?WSDL";
 
-			if($numero_tarjeta == ""){
-				$this->setMessage("ERROR: Debe ingresar un Número de Tarjeta en la información de pago", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform', false));
-				return;
-			}
-
-			if($mes_vencimiento == ""){
-				$this->setMessage("ERROR: Debe seleccionar un mes de vencimiento", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform', false));
-				return;
-			}
-
-			if($anio_vencimiento == ""){
-				$this->setMessage("ERROR: Debe seleccionar un año de vencimiento de su tarjeta", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform', false));
-				return;
-			}
-
-			if($codigo_tarjeta == ""){
-				$this->setMessage("ERROR: Debe ingresar un Codigo  de Verificación de su tarjeta valido", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform', false));
-				return;
-			}
-
-
-			if( (  ($anio_vencimiento == date('Y')) && ($mes_vencimiento<=date('m'))  )    || ($anio_vencimiento<date('Y'))   ){
-				$this->setMessage("ERROR: La Fecha de expiración de su Tarjeta de crédito debe ser superior a la fecha actual", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform', false));
-				return;
-			}
-
-			//WEBSERVICES
-		
-
-			$envio = array('informacionTransaccion'=>array(
-				   	'Compra' =>array(
-				   		'referencia' => $referencia,
-				   		// 'descripcion' => 'prueba',//opcional
-				   		'valor'=>$tiquete['total'],
-				   		'isoMoneda'=>'COP',
-				   		'numeroCuotas'=>12,
-				   		'iva'=>0,
-				   		'baseDevolucionIva'=>0
-				   	),
-				   	'Cliente' => array(
-				   		'nombre'=>$cliente['nombre'],
-				   		'apellido'=>$cliente['apellidos'],
-				   		'documento'=>$cliente['documento'],
-				   		'email'=>$user->email,
-				   		'telefono'=>$cliente['telefono']
-				   	),
-				   	'TarjetaHabiente'=>array(
-				   		'nombre'=>$nombre_titular,
-				   		'apellido'=>$apellidos_titular,
-				   		'email'=>$email_titular,
-				   		'telefono'=>$telefono_titular,
-				   		'pais'=>'CO',
-				   		'estadoProvincia'=>$departamento_titular,
-				   		'ciudad'=>$ciudad_titular,
-				   		'direccion'=>$direccion_titular,
-				   		'codigoPostal'=>'5700'
-				   	),
-				   	'TarjetaCredito'=>array(
-				   		'franquicia'=> $franquicia,
-				   		'numeroTarjeta'=>$numero_tarjeta,
-				   		'mesVencimiento'=>$mes_vencimiento,
-				   		'anoVencimiento'=>$anio_vencimiento,
-				   		'codigoSeguridad'=>$codigo_tarjeta,
-				   		'tipoCuenta'=>$tipo_cuenta
-				   	),
-				   	'InformacionFraude'=>array(
-				   		'ipComprador'=> $_SERVER['REMOTE_ADDR'],
-				   		// 'hostComprador'=>'localhost',//opcional
-				   		'cookie'=>$session->get('idsesion'),
-				   		'userAgent'=>$_SERVER['HTTP_USER_AGENT'],
-				   		'deviceFingerPrint'=>$session->get('idsesion')
-				   	),
-				   	'productos'=>array(
-				   		'producto'=>array(
-					   		'codigoItem'=>$PagSav,
-					   		'nombreItem'=>'Tiquete Viaje',
-					   		'valorItem'=>$tiquete['total'],
-					   		'cantidadItem'=>1,
-					   		'codigoCategoria'=>3,
-					   		'nombreCategoria'=>'Gacela'
-				   		)
-				   	)
-				   ));
-		}else{
-			$tipo_documento_titular = $jinput->post->get('tipo_documento', '', 'STRING');
-			$banco = $jinput->post->get('banco', '', 'STRING');
-			$component = $app->get('option');
-			$params    = JComponentHelper::getParams($component);
-			//$usuario_web_service 		= 'icapi';
-			//$pass_web_service 	 		= 'qVPiCfJ8';
-			//$wsdl 						= "https://secure.allegraplatform.com/GatewayIatai/PSE?WSDL";
-
-			$soap_client = new soapclient($params->get('pagos_url_td'),array('trace'=> true));
-			$header_part = '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
-	        		<wsse:UsernameToken>
-	            		<wsse:Username>' . $params->get('pagos_usuario') . '</wsse:Username>
-	            		<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">' . $params->get('pagos_key') . '</wsse:Password>
-	        		</wsse:UsernameToken>
-	    			</wsse:Security>';
-			$soap_var_header = new SoapVar( $header_part, XSD_ANYXML, null, null, null );
-			$soap_header     = new SoapHeader($params->get('pagos_url_td'), 'Security', $soap_var_header );
-			$soap_client->__setSoapHeaders($soap_header);
-
-			$envio = array('transaccionPSE'=>array(
-				   	'CompraPSE' =>array(
-				   		'referencia' => $referencia,
-				   		 'descripcion' => substr($descripcion_pago, 0, 80),
-				   		'valor'=>$tiquete['total'],
-				   		'isoMoneda'=>'COP',
-				   		'numeroCuotas'=>12,
-				   		'iva'=>0,
-				   		'baseDevolucionIva'=>0,
-				   		'idBanco' => $banco,
-				   		'urlRespuesta' => $params->get('pagos_respuesta')
-				   	),
-				   	'TitularCuentaPSE'=>array(
-				   		'nombre'		=>$nombre_titular,
-				   		'apellido'		=>$apellidos_titular,
-				   		'email'			=>$email_titular,
-				   		'telefono'		=>$telefono_titular,
-				   		'documento' 	=> $cedula_titular,
-				   		'pais'			=>'CO',
-				   		'estadoProvincia'=>$departamento_titular,
-				   		'ciudad'		=>$ciudad_titular,
-				   		'direccion'		=>$direccion_titular,
-				   		'codigoPostal'	=>'5700',
-				   		'tipoDocumento' => $tipo_documento_titular,
-				   		'usuarioNatural' => true
-				   	),
-				   	'InformacionFraude'=>array(
-				   		'ipComprador'  => $_SERVER['REMOTE_ADDR'],
-				   		// 'hostComprador'=>'localhost',//opcional
-				   		'cookie'			=>$session->get('idsesion'),
-				   		'userAgent'			=>$_SERVER['HTTP_USER_AGENT'],
-				   		'deviceFingerPrint'	=>$session->get('idsesion')
-				   	),
-				   	'productos'=>array(
-				   		'producto'=>array(
-					   		'codigoItem'=>'codio454565',//$PagSav,
-					   		'nombreItem'=>'Tiquete Viaje',
-					   		'valorItem'=>'200700',//$tiquete['total'],
-					   		'cantidadItem'=>1,
-					   		'codigoCategoria'=>3,
-					   		'nombreCategoria'=>'Gacela'
-				   		)
-				   	)
-				   ));
+		/*$soap_client = new soapclient($params->get('pagos_url_td'),array('trace'=> true));
+		$header_part = '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+				<wsse:UsernameToken>
+					<wsse:Username>' . $params->get('pagos_usuario') . '</wsse:Username>
+					<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">' . $params->get('pagos_key') . '</wsse:Password>
+				</wsse:UsernameToken>
+				</wsse:Security>';
+		$soap_var_header = new SoapVar( $header_part, XSD_ANYXML, null, null, null );
+		$soap_header     = new SoapHeader($params->get('pagos_url_td'), 'Security', $soap_var_header );
+		$soap_client->__setSoapHeaders($soap_header);
+		*/
+		$seed = date('c');
+		if (function_exists('random_bytes')) {
+			$nonce = bin2hex(random_bytes(16));
+		} elseif (function_exists('openssl_random_pseudo_bytes')) {
+			$nonce = bin2hex(openssl_random_pseudo_bytes(16));
+		} else {
+			$nonce = mt_rand();
 		}
+		
+		$secretKey = '024h1IlD';
+		
+		$nonceBase64 = base64_encode($nonce);
+		
+		$tranKey = base64_encode(sha1($nonce . $seed . $secretKey, true));
+		
+		$request = [
+			'auth' => [
+			'login' => '6dd490faf9cb87a9862245da41170ff2',
+			'seed' => date('c'),
+			'nonce' => $nonceBase64,
+			'tranKey' => $tranKey,
+			],
+		
+		'buyer' => [
+			'name' => $nombre_titular,
+			'surname' => $apellidos_titular,
+			'email' => $email_titular,
+			'mobile' => $telefono_titular,
+			'address' => [
+				'city' => $ciudad_titular,
+				'street' => $direccion_titular
+			]
+		],
+		'payment' => [
+			'reference' => $referencia,
+			'description' => substr($descripcion_pago, 0, 80),
+			'amount' => [
+					'currency' => 'COP',
+					'total' => $tiquete['total']
+				]
+		
+		],
+		
+			'expiration' => date('c', strtotime('+2 days')),
+			'returnUrl' => $params->get('pagos_respuesta')."&referencia=",
+			'ipAddress' => $_SERVER['REMOTE_ADDR'],
+			'userAgent' => $_SERVER['HTTP_USER_AGENT'],
+		];
+		
+		//return $request;
+
+		$url = 'https://test.placetopay.com/redirection/api/session';
+		
+		
+		//Se inicia. el objeto CUrl
+		$ch = curl_init($url);
+		
+		//creamos el json a partir del arreglo
+		$jsonDataEncoded = json_encode($request);
+		
+		
+		//Indicamos que nuestra petición sera Post
+		curl_setopt($ch, CURLOPT_POST, 1);
+		
+		//para que la peticion no imprima el resultado como un echo comun, y podamos manipularlo
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		
+		//Adjuntamos el json a nuestra petición
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+		
+		
+			//Agregar los encabezados del contenido
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'User-Agent: cUrl Testing'));
+		
+		//Ejecutamos la petición
+		$result_Json = curl_exec($ch);
+		$result = json_decode($result_Json);
 		try{
-
-			if($tiquete['metodo_pago']==1){
-				$result = $soap_client->transaccion($envio);
-				$respuesta_transaccion = $result->respuestaTransaccion;
-
-				$pagos['id_transaccion'] 		= $respuesta_transaccion->idTransaccion;
-				$pagos['estados_id']		 	= $respuesta_transaccion->idEstado;
-				$pagos['nombre_estado'] 		= $respuesta_transaccion->nombreEstado;
-				$pagos['id']	            	= $respuesta_transaccion->referencia;
-				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->codigoRespuesta;
-				$pagos['codigo_autorizacion'] 	= $respuesta_transaccion->codigoAutorizacion;
-				$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->fechaProcesamiento;
-				$pagos['mensaje'] 			  	= $respuesta_transaccion->mensaje;
-				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
-
-				$formp2 = $model_p->getForm();
-				$Mopag2 = $model_p->validate($formp2, $pagos);
-				$PagSav = $model_p->save($Mopag2);
-
-				if($respuesta_transaccion->idEstado==1){
-					$puntos['clientes_id'] = $user->id;
-					$puntos['puntos']	   = $puntos_totales;
-					$puntos['estado']	   = 1;
-					$puntos['fecha']	   = date('Y-m-d');
-					$Mopun 	= $model_pu->validate($formpu, $puntos);
-					$PunSav = $model_pu->save($Mopun);
-				}
-
-			}elseif($tiquete['metodo_pago']==2){
-				$model_p  				   = $this->getModel('PagoForm', 'FlotaModel');
-				$formp2   				   = $model_p->getForm();
-				$result 				   = $soap_client->crearTransaccionPSE($envio);
-				$respuesta_transaccion 	   = $result->respuestaTransaccionPSE;
-				$tiquete['id_transaccion'] = $respuesta_transaccion->idTransaccion;
-				$tiquete['referencia']     = $respuesta_transaccion->referencia;
-				$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
-				$tiquete['puntos_totales'] = $puntos_totales;
-				$session->set('tiquete', $tiquete);
-
-				//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
-				$pagos['id_transaccion'] 		= $respuesta_transaccion->idTransaccion;
-				$pagos['estados_id']		 	= $respuesta_transaccion->idEstado;
-				$pagos['id']	            	= $respuesta_transaccion->referencia;
-				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->codigoRespuesta;
-				$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->codigoTrazabilidad;
-				$pagos['nombre_estado'] 		= $respuesta_transaccion->nombreEstado;
-				$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->fechaProcesamiento;
-				$pagos['mensaje'] 			  	= $respuesta_transaccion->mensaje;
-				$pagos['nombre_banco'] 			= $respuesta_transaccion->bancoPSERespuesta->nombre;
-				$pagos['ip'] 			  		= $respuesta_transaccion->ip;
-				$Mopag2  						= $model_p->validate($formp2, $pagos);
-				$PagSav   						= $model_p->save($Mopag2);
-
-				//echo '<pre>';
-				//echo print_r($respuesta_transaccion,true);
-				//echo '</pre>';
-				
-				if(!$respuesta_transaccion->bancoPSERespuesta->url){
-					$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573216134945 o al correo electrónico reservas@flotamagdalena.com", 'warning');
-					$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform&layout=debito', false));
+			$respuesta_transaccion 	   = $result;
+			$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+			$tiquete['referencia']     = $referencia;
+			$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+			$tiquete['puntos_totales'] = $puntos_totales;
+			$session->set('tiquete', $tiquete);
+			//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
+			$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
+			$pagos['estados_id']		 	= '3';
+			$pagos['id']	            	= $referencia;
+			$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
+			$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->status->reason;
+			$pagos['nombre_estado'] 		= 'PENDING';
+			$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
+			$pagos['mensaje'] 			  	= $respuesta_transaccion->status->message;
+			$pagos['nombre_banco'] 			= "Defecto";
+			$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+			$pagos['referencia'] 			= $referencia;
+			$formp2 						= $model_p->getForm();
+			$Mopag2  						= $model_p->validate($formp2, $pagos);
+			print_r($pagos);
+			$PagSav   						= $model_p->save($Mopag2);
+			print_r($respuesta_transaccion); 
+			//echo '<pre>';
+			//echo print_r($respuesta_transaccion,true);
+			//echo '</pre>';
+			
+			/*if(!$respuesta_transaccion->bancoPSERespuesta->url){
+				$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573216134945 o al correo electrónico reservas@flotamagdalena.com", 'warning');
+				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform&layout=debito', false));
+				return;
+			}
+			if($respuesta_transaccion->nombreEstado=="RECHAZADA" || $respuesta_transaccion->nombreEstado == "FALLIDA"){
+				if($respuesta_transaccion->codigoRespuesta=="FAIL_EXCEEDEDLIMIT"){
+					$this->setMessage("El monto de la transacción excede los limites establecidos en PSE para la empresa, por favor comuníquese con nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
+					$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
+					return;
+				}else{
+					$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
+					$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
 					return;
 				}
-				if($respuesta_transaccion->nombreEstado=="RECHAZADA" || $respuesta_transaccion->nombreEstado == "FALLIDA"){
-					if($respuesta_transaccion->codigoRespuesta=="FAIL_EXCEEDEDLIMIT"){
-						$this->setMessage("El monto de la transacción excede los limites establecidos en PSE para la empresa, por favor comuníquese con nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
-						$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
-						return;
-					}else{
-						$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
-						$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
-						return;
-					}
-				}
-				$this->setRedirect($respuesta_transaccion->bancoPSERespuesta->url);
-			}
-			
+			}*/
+			print_r($respuesta_transaccion->processUrl);
+			$this->setRedirect($respuesta_transaccion->processUrl);
 			#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
 			$email['cliente']       = $ObTiq['clientes_id'];
 			$email['pago']	    	= $ObTiq['pagos_id'];
@@ -627,11 +451,19 @@ class FlotaControllerPagoForm extends FlotaController
         return false;
 	}
 
-	public function confirmacion(){
+	public function confirmacion1($id){
+		print_r($_GET['id']);
+		print_r($id);
+		print_r ('antes va otra cosa');
+	}
+	public function confirmacion($referencia){
+		print_r($_GET['referencia']);
+		print_r ('epdsaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+		print_r('epdsaaaaaaasss   sssaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
 		$session  = JFactory::getSession();
 		$user     = JFactory::getUser();
 		$tiquete  = $session->get('tiquete');
-
+		print_r($tiquete);
 		$model_p  = $this->getModel('PagoForm', 'FlotaModel');
 		$model_pu = JModelLegacy::getInstance('Punto', 'FlotaModel');
 		$formp2   = $model_p->getForm();
@@ -652,48 +484,7 @@ class FlotaControllerPagoForm extends FlotaController
 		$soap_header     = new SoapHeader($params->get('pagos_url_td'), 'Security', $soap_var_header );
 		$soap_client->__setSoapHeaders($soap_header);
 		//var_dump($tiquete);
-		try {
-			$envio 	= array('informacionConsulta'=>array('idTransaccion' => $tiquete['id_transaccion'],'referencia' => $tiquete['referencia']));
-			$result = $soap_client->consultarTransaccionPSE($envio);
-			$respuesta_transaccion = $result->respuestaTransaccionPSE;
-			//echo '<pre>';
-			//var_dump($respuesta_transaccion);
-			//echo '</pre>';
-
-			$pagos['id_transaccion'] 		= $respuesta_transaccion->idTransaccion;
-			$pagos['estados_id']		 	= $respuesta_transaccion->idEstado;
-			$pagos['id']	            	= $respuesta_transaccion->referencia;
-			$pagos['codigo_respuesta'] 		= $respuesta_transaccion->codigoRespuesta;
-			$pagos['codigo_autorizacion'] 	= $respuesta_transaccion->codigoAutorizacion;
-			$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->codigoTrazabilidad;
-			$pagos['nombre_estado'] 		= $respuesta_transaccion->nombreEstado;
-			$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->fechaProcesamiento;
-			$pagos['mensaje'] 			  	= $respuesta_transaccion->mensaje;
-			$pagos['nombre_banco'] 			= $respuesta_transaccion->bancoPSERespuesta->nombre;
-				$pagos['ip'] 			  	= $_SERVER['REMOTE_ADDR'];
-
-			//echo '<pre>';
-			//var_dump($pagos);
-			//echo '</pre>';
-			$Mopag2   = $model_p->validate($formp2, $pagos);
-			$PagSav   = $model_p->save($Mopag2);
-
-			if($respuesta_transaccion->idEstado==1){
-				$puntos['clientes_id'] = $user->id;
-				$puntos['puntos']	   = $tiquete['puntos_totales'];
-				$puntos['estado']	   = 1;
-				$puntos['fecha']	   = date('Y-m-d');
-				$Mopun 	= $model_pu->validate($formpu, $puntos);
-				$PunSav = $model_pu->save($Mopun);
-			}
-		} catch (Exception $e) {
-			$this->setMessage("ERROR en la Transacción: ".$e->getMessage(), 'warning');
-			$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform&layout=confirmacion', false));
-			return;
-		}
-
-		$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform&layout=confirmacion', false));
-		return;
+		
 	}
 
 	public function actualizar(){
