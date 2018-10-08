@@ -304,7 +304,7 @@ class FlotaControllerPagoForm extends FlotaController
 		],
 		
 			'expiration' => date('c', strtotime('+2 days')),
-			'returnUrl' => $params->get('pagos_respuesta')."&referencia=",
+			'returnUrl' => $params->get('pagos_respuesta')."&referencia=".$referencia,
 			'ipAddress' => $_SERVER['REMOTE_ADDR'],
 			'userAgent' => $_SERVER['HTTP_USER_AGENT'],
 		];
@@ -358,7 +358,6 @@ class FlotaControllerPagoForm extends FlotaController
 			$pagos['referencia'] 			= $referencia;
 			$formp2 						= $model_p->getForm();
 			$Mopag2  						= $model_p->validate($formp2, $pagos);
-			print_r($pagos);
 			$PagSav   						= $model_p->save($Mopag2);
 			print_r($respuesta_transaccion); 
 			//echo '<pre>';
@@ -451,20 +450,16 @@ class FlotaControllerPagoForm extends FlotaController
         return false;
 	}
 
-	public function confirmacion1($id){
-		print_r($_GET['id']);
-		print_r($id);
-		print_r ('antes va otra cosa');
-	}
-	public function confirmacion($referencia){
-		print_r($_GET['referencia']);
-		print_r ('epdsaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
-		print_r('epdsaaaaaaasss   sssaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+	
+	public function confirmacion(){
+		$idTransaccion = $_GET['referencia']; 
 		$session  = JFactory::getSession();
 		$user     = JFactory::getUser();
 		$tiquete  = $session->get('tiquete');
-		print_r($tiquete);
 		$model_p  = $this->getModel('PagoForm', 'FlotaModel');
+
+		$data 		= 	$model_p->getPago($idTransaccion);
+		$requestId 	=	$data->id_transaccion;
 		$model_pu = JModelLegacy::getInstance('Punto', 'FlotaModel');
 		$formp2   = $model_p->getForm();
 		$formpu   = $model_pu->getForm();
@@ -472,19 +467,79 @@ class FlotaControllerPagoForm extends FlotaController
 		$app       = JFactory::getApplication()->input;
 		$component 		= $app->get('option');
 		$params 		= JComponentHelper::getParams($component);
-
-		$soap_client 		 = new soapclient($params->get('pagos_url_td'),array('trace'=> true));
-		$header_part 		 = '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
-	        		<wsse:UsernameToken>
-	            		<wsse:Username>' .$params->get('pagos_usuario') . '</wsse:Username>
-	            		<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">' . $params->get('pagos_key') . '</wsse:Password>
-	        		</wsse:UsernameToken>
-	    			</wsse:Security>';
-		$soap_var_header = new SoapVar( $header_part, XSD_ANYXML, null, null, null );
-		$soap_header     = new SoapHeader($params->get('pagos_url_td'), 'Security', $soap_var_header );
-		$soap_client->__setSoapHeaders($soap_header);
-		//var_dump($tiquete);
 		
+		// consultar transaccion.
+		$seed = date('c');
+		if (function_exists('random_bytes')) {
+		$nonce = bin2hex(random_bytes(16));
+		} elseif (function_exists('openssl_random_pseudo_bytes')) {
+			$nonce = bin2hex(openssl_random_pseudo_bytes(16));
+		} else {
+			$nonce = mt_rand();
+		}
+		
+		$secretKey = $model_p->gettrankey();
+		
+		$nonceBase64 = base64_encode($nonce);
+		
+		$tranKey = base64_encode(sha1($nonce . $seed . $secretKey, true));
+		
+		$request = [
+			'auth' => [
+				'login' => $model_p->getlogin(),
+				'seed' => date('c'),
+				'nonce' => $nonceBase64,
+				'tranKey' => $tranKey,
+				],
+		];
+		//return $request;
+		
+		
+		$url = 'https://test.placetopay.com/redirection/api/session/'.$requestId;
+		
+		
+		//Se inicia. el objeto CUrl
+		$ch = curl_init($url);
+		
+		//creamos el json a partir del arreglo
+		$jsonDataEncoded = json_encode($request);
+		
+		
+		//Indicamos que nuestra petición sera Post
+		curl_setopt($ch, CURLOPT_POST, 1);
+		
+		//para que la peticion no imprima el resultado como un echo comun, y podamos manipularlo
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		
+		//Adjuntamos el json a nuestra petición
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+		
+		
+			//Agregar los encabezados del contenido
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'User-Agent: cUrl Testing'));
+		
+		//Ejecutamos la petición
+		$result_Json = curl_exec($ch);
+		//var_dump($tiquete);
+		$result = json_decode($result_Json);
+		
+		$respuesta_transaccion 	   = $result;
+			//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
+			$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
+			$pagos['estados_id']		 	= '2';
+			$pagos['id']	            	= $data->id;
+			$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
+			$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->status->reason;
+			$pagos['nombre_estado'] 		= $respuesta_transaccion->payment[0]->status->status;
+			$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
+			$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+			$pagos['nombre_banco'] 			= "Defecto";
+			$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+			$pagos['referencia'] 			= $referencia;
+			$formp2 						= $model_p->getForm();
+			$Mopag2  						= $model_p->validate($formp2, $pagos);
+			$PagSav   						= $model_p->save($Mopag2);
+			print_r($PagSav); 
 	}
 
 	public function actualizar(){

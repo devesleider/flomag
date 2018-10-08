@@ -256,6 +256,14 @@ class FlotaModelPagoForm extends JModelForm
 		}
 	}
 
+	public function getlogin(){
+		return "6dd490faf9cb87a9862245da41170ff2";
+	}
+
+	public function gettrankey(){
+		return "024h1IlD";
+	}
+
 	public function getCanSave(){
 		$table = $this->getTable();
 		return $table !== false;
