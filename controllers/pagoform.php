@@ -269,7 +269,7 @@ class FlotaControllerPagoForm extends FlotaController
 			$nonce = mt_rand();
 		}
 		
-		$secretKey = '024h1IlD';
+		$secretKey = $model_p->gettrankey();
 		
 		$nonceBase64 = base64_encode($nonce);
 		
@@ -277,7 +277,7 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		$request = [
 			'auth' => [
-			'login' => '6dd490faf9cb87a9862245da41170ff2',
+			'login' => $model_p->getlogin(),
 			'seed' => date('c'),
 			'nonce' => $nonceBase64,
 			'tranKey' => $tranKey,
@@ -338,61 +338,43 @@ class FlotaControllerPagoForm extends FlotaController
 		$result_Json = curl_exec($ch);
 		$result = json_decode($result_Json);
 		try{
-			$respuesta_transaccion 	   = $result;
-			$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
-			$tiquete['referencia']     = $referencia;
-			$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
-			$tiquete['puntos_totales'] = $puntos_totales;
-			$session->set('tiquete', $tiquete);
-			//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
-			$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
-			$pagos['estados_id']		 	= '3';
-			$pagos['id']	            	= $referencia;
-			$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
-			$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->status->reason;
-			$pagos['nombre_estado'] 		= 'PENDING';
-			$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
-			$pagos['mensaje'] 			  	= $respuesta_transaccion->status->message;
-			$pagos['nombre_banco'] 			= "Defecto";
-			$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
-			$pagos['referencia'] 			= $referencia;
-			$formp2 						= $model_p->getForm();
-			$Mopag2  						= $model_p->validate($formp2, $pagos);
-			$PagSav   						= $model_p->save($Mopag2);
-			print_r($respuesta_transaccion); 
-			//echo '<pre>';
-			//echo print_r($respuesta_transaccion,true);
-			//echo '</pre>';
-			
-			/*if(!$respuesta_transaccion->bancoPSERespuesta->url){
-				$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573216134945 o al correo electrónico reservas@flotamagdalena.com", 'warning');
-				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform&layout=debito', false));
+			if($result->status->status == 'OK')
+			{
+				$respuesta_transaccion 	   = $result;
+				$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+				$tiquete['referencia']     = $referencia;
+				$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+				$tiquete['puntos_totales'] = $puntos_totales;
+				$session->set('tiquete', $tiquete);
+				//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
+				$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
+				$pagos['estados_id']		 	= '3';
+				$pagos['id']	            	= $referencia;
+				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
+				$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->status->reason;
+				$pagos['nombre_estado'] 		= 'Pendiente';
+				$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
+				$pagos['mensaje'] 			  	= $respuesta_transaccion->status->message;
+				$pagos['nombre_banco'] 			= "Sin banco";
+				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+				$pagos['referencia'] 			= $referencia;
+				$formp2 						= $model_p->getForm();
+				$Mopag2  						= $model_p->validate($formp2, $pagos);
+				$PagSav   						= $model_p->save($Mopag2);
+				#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
+				$email['cliente']       = $ObTiq['clientes_id'];
+				$email['pago']	    	= $ObTiq['pagos_id'];
+				$email['tiquete_ida']   = $TiqSav;
+				$email['tiquete_reg']   = $TiqSav2;
+				$this->notificarEmpresa($email);
+
+				$view = $this->getView('PagoForm','html');
+				$view->confirmacion = $result;
+				$view->display();
+				$this->setRedirect($respuesta_transaccion->processUrl);
+			}else{
 				return;
 			}
-			if($respuesta_transaccion->nombreEstado=="RECHAZADA" || $respuesta_transaccion->nombreEstado == "FALLIDA"){
-				if($respuesta_transaccion->codigoRespuesta=="FAIL_EXCEEDEDLIMIT"){
-					$this->setMessage("El monto de la transacción excede los limites establecidos en PSE para la empresa, por favor comuníquese con nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
-					$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
-					return;
-				}else{
-					$this->setMessage("No se pudo crear la transacción, por favor intente mas tarde o comuniquese nuestras líneas de atención al cliente al Teléfono: (1)5674567 - Celular: +573102199353 o al correo electrónico flotamagdalena.pagosonline@gmail.com", 'warning');
-					$this->setRedirect(JRoute::_('index.php?option=com_flota&task=pagoform.confirmacion', false));
-					return;
-				}
-			}*/
-			print_r($respuesta_transaccion->processUrl);
-			$this->setRedirect($respuesta_transaccion->processUrl);
-			#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
-			$email['cliente']       = $ObTiq['clientes_id'];
-			$email['pago']	    	= $ObTiq['pagos_id'];
-			$email['tiquete_ida']   = $TiqSav;
-			$email['tiquete_reg']   = $TiqSav2;
-			$this->notificarEmpresa($email);
-
-			$view = $this->getView('PagoForm','html');
-			$view->confirmacion = $result;
-			$view->display();
-			return;
 		}catch (Exception $e){
 			$this->setMessage("ERROR en la Transacción: ".$e->getMessage(), 'warning');
 			$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform'.$theme, false));
@@ -522,24 +504,67 @@ class FlotaControllerPagoForm extends FlotaController
 		$result_Json = curl_exec($ch);
 		//var_dump($tiquete);
 		$result = json_decode($result_Json);
+		if($result->status->status != 'FAILED')
+		{
+			print_r('entro diferente de fallida');
+			if($result->payment!=null)
+			{
+				print_r('entro payment no null');
+				$respuesta_transaccion 	   = $result;
+				//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
+				$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
+				$pagos['estados_id']		 	= '2';
+				$pagos['id']	            	= $data->id;
+				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
+				$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->payment[0]->authorization;
+				if($respuesta_transaccion->payment[0]->status->status == 'APPROVED')
+				{
+					print_r('entro aprobada');
+					$pagos['nombre_estado'] 		= 'Aprobado';
+					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+				}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
+				{
+					print_r('entro declinada');
+					$pagos['nombre_estado'] 		= 'Rechazada';
+					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+				}else{
+					$pagos['nombre_estado'] 		= 'Pendiente';
+					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+				}
+				$pagos['codigo_autorizacion']  	= $respuesta_transaccion->payment[0]->authorization;
+				$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
+				$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
+				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+				$pagos['referencia'] 			= $referencia;
+				$formp2 						= $model_p->getForm();
+				$Mopag2  						= $model_p->validate($formp2, $pagos);
+				$PagSav   						= $model_p->save($Mopag2);
+				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
+				 
+			}
+		}
+	}
+
+	public function actualizarnotificacion(){
+		$rest=json_decode(file_get_contents('php://input'), true);
+		print_r($rest);
 		
-		$respuesta_transaccion 	   = $result;
-			//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
-			$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
-			$pagos['estados_id']		 	= '2';
-			$pagos['id']	            	= $data->id;
-			$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
-			$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->status->reason;
-			$pagos['nombre_estado'] 		= $respuesta_transaccion->payment[0]->status->status;
-			$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
-			$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
-			$pagos['nombre_banco'] 			= "Defecto";
-			$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
-			$pagos['referencia'] 			= $referencia;
-			$formp2 						= $model_p->getForm();
-			$Mopag2  						= $model_p->validate($formp2, $pagos);
-			$PagSav   						= $model_p->save($Mopag2);
-			print_r($PagSav); 
+		$val = sha1 ($rest['requestId'] . $rest['status']['status'] . $rest['status']['date'] . '024h1IlD');
+		
+		if ($val==$rest['signature']) {
+		
+			
+			echo $rest['requestId'];
+			
+		}else{
+		
+			echo '<br>';
+			echo 'Generado: '. $val;
+			echo '<br>';
+			echo 'muestra: feb3e7cc76939c346f9640573a208662f30704ab';
+			echo '<br>';
+			echo 'recibido: ' . $rest['signature'];
+		} 
 	}
 
 	public function actualizar(){
