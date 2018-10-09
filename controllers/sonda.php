@@ -1,5 +1,5 @@
 <?php 
-
+	require_once JPATH_COMPONENT . '/controller.php';
 	$idTransaccion = $_GET['referencia']; 
 	$session  = JFactory::getSession();
 	$user     = JFactory::getUser();
