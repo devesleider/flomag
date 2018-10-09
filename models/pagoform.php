@@ -257,11 +257,11 @@ class FlotaModelPagoForm extends JModelForm
 	}
 
 	public function getlogin(){
-		return "6dd490faf9cb87a9862245da41170ff2";
+		return "bb64e391a1980021bce85e8b022e82af";
 	}
 
 	public function gettrankey(){
-		return "024h1IlD";
+		return "Tu138rtLze59PC98";
 	}
 
 	public function getCanSave(){
