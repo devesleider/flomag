@@ -115,14 +115,14 @@ $total     = ($session->get('tiquete')['subtotal']>$session->get('tiquete')['tot
 <div class="content-tiquete">
 	<div class="left_tiquete">
 		<div class="metodo-pago">
-			<img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="200" height="100">
+			<a href="https://www.placetopay.com/web/"><img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="200" height="100"></a>
 			
 		</div>
-		<dir>
+		<div>
 			<a href="">
 				<h2>Preguntas Frecuentes</h2>
 			</a>
-		</dir>
+		</div>
 		<div class="buttons-pago">
 			<a href="index.php?option=com_flota&view=rutas&layout=sillas">RETROCEDER</a>
 			<input type="submit" name="submit" class="button-pago" value="CONTINUAR CON EL PAGO" />
