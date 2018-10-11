@@ -255,6 +255,10 @@ class FlotaModelPagoForm extends JModelForm
 			return false;
 		}
 	}
+	
+	public function getURL(){
+		return "https://test.placetopay.com/redirection/api/session/";
+	}
 
 	public function getlogin(){
 		return "bb64e391a1980021bce85e8b022e82af";
