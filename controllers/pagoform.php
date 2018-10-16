@@ -311,7 +311,7 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		//return $request;
 
-		$url = $model_p->getlogin();
+		$url = $model_p->getURL();
 		
 		
 		//Se inicia. el objeto CUrl
@@ -477,7 +477,7 @@ class FlotaControllerPagoForm extends FlotaController
 		//return $request;
 		
 		
-		$url = $model_p->getlogin().$requestId;
+		$url = $model_p->getURL().$requestId;
 		
 		
 		//Se inicia. el objeto CUrl
@@ -515,6 +515,11 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['id']	            	= $data->id;
 				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
 				$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->payment[0]->authorization;
+				$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+				$tiquete['referencia']     = $referencia;
+				$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+				$tiquete['puntos_totales'] = $puntos_totales;
+				$session->set('tiquete', $tiquete);
 				if($respuesta_transaccion->payment[0]->status->status == 'APPROVED')
 				{
 					
@@ -549,6 +554,25 @@ class FlotaControllerPagoForm extends FlotaController
 				$this->notificarActualizacion($email);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 				 
+			}else{
+				$pagos['id_transaccion'] 		= $result->requestId;
+				$pagos['estados_id']		 	= '4';
+				$pagos['nombre_estado'] 		= 'Cancelada';
+				$pagos['mensaje'] 			  	= 'No se realiza Pago';
+				$pagos['id']	            	= $data->id;
+				$pagos['codigo_respuesta'] 		= $result->status->reason;
+				$pagos['codigo_trazabilidad'] 	= "000000";
+				$pagos['codigo_autorizacion']  	= "000000";
+				$pagos['fecha_procesamiento'] 	= $result->status->date;
+				$pagos['nombre_banco'] 			= "No realizo pago";
+				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+				$pagos['referencia'] 			= $rest['reference'];
+				$formp2 						= $model_p->getForm();
+				$Mopag2  						= $model_p->validate($formp2, $pagos);
+				$PagSav   						= $model_p->save($Mopag2);
+				$this->notificarActualizacion($email);
+				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
+				return;
 			}
 		}else{
 			$pagos['id_transaccion'] 		= $result->requestId;
@@ -568,7 +592,7 @@ class FlotaControllerPagoForm extends FlotaController
 		}
 	}
 
-	public function actualizarpagoPp2p(){
+	public function actualizarpagoP2p(){
 		//Recibe el Json
 		$rest=json_decode(file_get_contents('php://input'), true);
 		$session  = JFactory::getSession();
@@ -576,11 +600,12 @@ class FlotaControllerPagoForm extends FlotaController
 		$tiquete  = $session->get('tiquete');
 		$model_p  = $this->getModel('PagoForm', 'FlotaModel');
 		// Se crea el hash
-		$val = sha1 ($rest['requestId'] . $rest['status']['status'] . $rest['status']['date'] . '024h1IlD');
+		$val = sha1 ($rest['requestId'] . $rest['status']['status'] . $rest['status']['date'] . $model_p->gettrankey());
 		/*se valida el signature enviado por placetopay, con el armado para validar que la peticion
 		viene de Placetopay*/
 		$data 		= 	$model_p->getPago($rest['reference']);
 		if ($val==$rest['signature']) {
+			print_r("entro");
 			$requestId 	=	$data->id_transaccion;
 			$model_pu = JModelLegacy::getInstance('Punto', 'FlotaModel');
 			$formp2   = $model_p->getForm();
@@ -617,7 +642,7 @@ class FlotaControllerPagoForm extends FlotaController
 			//return $request;
 			
 			
-			$url = $model_p->getlogin().$rest['requestId'];
+			$url = $model_p->getURL().$rest['requestId'];
 			
 			
 			//Se inicia. el objeto CUrl
@@ -667,6 +692,12 @@ class FlotaControllerPagoForm extends FlotaController
 						$puntos['fecha']= date('Y-m-d');
 						$Monpu = $model_pu->validate($formpu,$puntos);
 						$PunSav = $model_pu->save($Monpu);
+
+						$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+						$tiquete['referencia']     = $rest['reference'];
+						$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+						$tiquete['puntos_totales'] = 0;
+						$session->set('tiquete', $tiquete);
 					}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
 					{
 						print_r('entro declinada');
@@ -676,23 +707,27 @@ class FlotaControllerPagoForm extends FlotaController
 						$pagos['nombre_estado'] 		= 'Pendiente';
 						$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
 					}
+					$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+					$tiquete['referencia']     = $rest['reference'];
+					$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+					$tiquete['puntos_totales'] = $puntos_totales;
+					$session->set('tiquete', $tiquete);
 					$pagos['codigo_autorizacion']  	= $respuesta_transaccion->payment[0]->authorization;
 					$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
 					$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
 					$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
 					$pagos['referencia'] 			= $rest['reference'];
-					$pagos['nombre_estado'] 		= 'Pendiente';
-					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
 					$formp2 						= $model_p->getForm();
 					$Mopag2  						= $model_p->validate($formp2, $pagos);
 					$PagSav   						= $model_p->save($Mopag2);
 					$this->notificarActualizacion($email);
-					$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$rest['reference']);
 					
 				}else{
 					$pagos['id_transaccion'] 		= $result->requestId;
 					$pagos['estados_id']		 	= '4';
 					$pagos['id']	            	= $data->id;
+					$pagos['nombre_estado'] 		= 'Cancelada';
+					$pagos['mensaje'] 			  	= 'No se realiza Pago';
 					$pagos['codigo_respuesta'] 		= $result->status->reason;
 					$pagos['codigo_trazabilidad'] 	= "000000";
 					$pagos['codigo_autorizacion']  	= "000000";
@@ -703,7 +738,8 @@ class FlotaControllerPagoForm extends FlotaController
 					$formp2 						= $model_p->getForm();
 					$Mopag2  						= $model_p->validate($formp2, $pagos);
 					$PagSav   						= $model_p->save($Mopag2);
-					$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$rest['reference']);
+					$this->notificarActualizacion($email);
+					return;
 				}
 		}
 
