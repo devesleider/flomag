@@ -134,6 +134,21 @@ $doc->addScript(JUri::base() . '/components/com_flota/assets/js/form.js');
 						<option value="2023">2024</option>
 					</select>
 			</div>
+			<div>
+			<fieldset>
+				<input type="radio" name="mpago" value="efectivo"> Efectivo<br>
+				<input type="radio" name="mpago" value="otro"> Tarjeta de credito o PSE<br>
+				</fieldset>
+
+			</div>
+			<div class="metodo-pago">
+				<img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="200" height="100">
+			</div>
+			<div>
+				<a href="https://drive.google.com/file/d/1Mm2U1KfohpZlyBvMqNiZfDXmt1mnSYbd/view?usp=sharing" target="_blank">
+					<h5>Preguntas Frecuentes</h5>
+				</a>
+			</div>
 		</div>
 	</div>
 	<div class="pagos-right">
