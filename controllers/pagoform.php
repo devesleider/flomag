@@ -94,6 +94,7 @@ class FlotaControllerPagoForm extends FlotaController
 		$puntos_totales   = 0;
 		$descripcion_pago = '';
 
+
 		#INFORMACION DE LAS SILLAS
 		$sillas_ida     = explode(",", $tiquete['sillas_ida']);
 		$sillas_regreso = explode(",", $tiquete['sillas_regreso']);
