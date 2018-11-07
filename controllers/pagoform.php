@@ -191,6 +191,9 @@ class FlotaControllerPagoForm extends FlotaController
 			$direccion_titular 		= $info_titular['direccion'] = $tiquete["direccion_titular"] = $jinput->post->get('direccion_titular', '', 'STRING');
 			$info_titular['clientes_id'] = $cliente['id'];
 
+			$mpago = $jinput->post->get('mpago', '', 'STRING');
+			$expiration;
+
 			$session->set('tiquete', $tiquete);
 
 			if($direccion_titular == ""){
@@ -235,6 +238,12 @@ class FlotaControllerPagoForm extends FlotaController
 				$this->setMessage("ERROR: La Cédula solo puede contener números", 'warning');
 				$this->setRedirect(JRoute::_('index.php?option=com_flota&view=pagoform'.$theme, false));
 				return;
+			}
+
+			if($mpago == 'efectivo'){
+				$expiration = date('c', strtotime('+10 hour'));
+			}else{
+				$expiration = date('c', strtotime('+30 minute'));
 			}
 
 		//SE GUARDAN LOS DATOS DEL TITULAR
@@ -304,7 +313,7 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		],
 		
-			'expiration' => date('c', strtotime('+2 days')),
+			'expiration' => $expiration,
 			'returnUrl' => $params->get('pagos_respuesta')."&referencia=".$referencia,
 			'ipAddress' => $_SERVER['REMOTE_ADDR'],
 			'userAgent' => $_SERVER['HTTP_USER_AGENT'],
