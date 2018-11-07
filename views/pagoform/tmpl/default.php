@@ -79,7 +79,7 @@ $doc->addScript(JUri::base() . '/components/com_flota/assets/js/form.js');
 	<div class="pagos-left">
 		<div class="titulo-pagos">Ingresa los datos de la tarjeta</div>
 		<div class="informacion-titular">
-			<div class="header-pagos">INFORMACION DEL TITULAR DE LA TARJETA DE CRÉDITO</div>
+			<div class="header-pagos">INFORMACION DEL TITULAR</div>
 			<input type="text" name="nombre_titular"  value="<?php echo (isset($tiquete['nombre_titular'])) ? $tiquete['nombre_titular'] : null;?>" title="Nombre del Titular" required placeholder="Nombre del Titular"  />
 			<input type="text" name="apellidos_titular" value="<?php echo (isset($tiquete['apellidos_titular'])) ? $tiquete['apellidos_titular'] : null;?>" title="Apellidos del Titular" required placeholder="Apellidos"  />
 			<input type="text" name="cedula_titular" value="<?php echo (isset($tiquete['cedula_titular'])) ? $tiquete['cedula_titular'] : null;?>" title="Número de Identificación del Titular" required placeholder="Cédula" />
@@ -90,49 +90,18 @@ $doc->addScript(JUri::base() . '/components/com_flota/assets/js/form.js');
 			<input type="text" name="ciudad_titular"  value="<?php echo (isset($tiquete['ciudad_titular'])) ? $tiquete['ciudad_titular'] : null;?>" title="Ciudad de residencia del Titular" required placeholder="Ciudad" />
 		</div>
 		<div class="informacion-tarjeta">
-			<div class="header-pagos">INFORMACION TARJETA DE CRÉDITO</div>
-			<select name="franquicia" id="franquicia">
-				<option value="">Seleccione la franquicia</option>
-				<?php 
-					foreach($resulta->respuestaFranquicias as $fra):
-						if($fra->idFranquicia==8)
-							continue;
-				?>
-				<option value="<?php echo $fra->idFranquicia;?>"><?php echo $fra->nombre?></option>
-			<?php endforeach;?>
-			</select>
-			<input type="text" name="numero_tarjeta" id="numero_tarjeta" maxlength="16" title="Número de su tarjeta de crédito" required placeholder="Número de Tarjeta"  />
-			<input type="text" name="codigo_tarjeta" id="codigo_tarjeta" maxlength="4" title="Codigo de Verificación" required placeholder="Código de Verificación" />
-			<div class="clearfix"></div>
-			<div class="campos-group">
-				<label>Fecha de vencimiento</label>
-				<select name="mes_vencimiento" id="mes_vencimiento" title="Mes de vencimiento de su tarjeta de crédito" required>
-						<option value="">Mes</option>
-						<option value="01">Enero</option>
-						<option value="02">Febrero</option>
-						<option value="03">Marzo</option>
-						<option value="04">Abril</option>
-						<option value="05">Mayo</option>
-						<option value="06">Junio</option>
-						<option value="07">Julio</option>
-						<option value="08">Agosto</option>
-						<option value="09">Septiembre</option>
-						<option value="10">Octubre</option>
-						<option value="11">Noviembre</option>
-						<option value="12">Diciembre</option>
-					</select>
-				<select name="anio_vencimiento" id="anio_vencimiento" title="Año de vencimiento de su tarjeta de crédito" required>
-						<option value="">Año</option>
-						<option value="2016">2016</option>
-						<option value="2017">2017</option>
-						<option value="2018">2018</option>
-						<option value="2019">2019</option>
-						<option value="2020">2020</option>
-						<option value="2021">2021</option>
-						<option value="2022">2022</option>
-						<option value="2023">2023</option>
-						<option value="2023">2024</option>
-					</select>
+			<div>
+				<h4><input type="radio" class="mpago" name="mpago" value="efectivo" required><b>Efectivo></b><br></h4>
+				<h4><input type="radio" class="mpago" name="mpago" value="otro" requireds><b>Tarjeta de credito o PSE</b><br></h4>
+			</div>
+			<div class="metodo-pago">
+				<img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="200" height="100">
+				<img src="flota.png" width="200" height="100">
+			</div>
+			<div>
+				<a href="FAQ.pdf" target="_blank">
+					<h5>Preguntas Frecuentes</h5>
+				</a>
 			</div>
 		</div>
 	</div>

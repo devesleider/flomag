@@ -1,7 +1,15 @@
 <?php defined('_JEXEC') or die; 
+	require_once('vendor/autoload.php');
+	require_once('ini.php');
+	require_once('gmail.php');
+
+	$googleClient = new Google_Client();
+	$auth = new googleAut($googleClient);
 	$dias = array("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31");
 	$meses = array("01","02","03","04","05","06","07","08","09","10","11","12");
 	$session = JFactory::getSession();
+
+
 ?>
 <div class="col-xs-12 col-md-7">
 	<div class="capa-login">
@@ -12,8 +20,16 @@
 				<form name="login" id="login" action="<?php echo JRoute::_('index.php?option=com_users&task=user.login'); ?>" method="post">
 					<input required type="text" name="username" id="user" class="user-login" placeholder="E-mail" required />
 					<input required type="password" name="password" id="password" class="user-pass" placeholder="Contraseña" required />
+					<?php if(!$auth->isLoggedIn()):  ?>
+						<a href="<?php echo $auth->getUrl(); ?>">
+						<input type="button"  value="Iniciar con Google" class="user-button" />
+						</a>
+					<?php else:  ?>
+						Bienvenido  <a href="logout.php">Cerrrar sesión</a>
+					<?php endif;  ?>
 					<input type="submit" name="submit" value="CONTINUAR" class="user-button" />
 					<input type="hidden" name="return" value="<?php echo base64_encode("index.php?option=com_flota&view=tiqueteform"); ?>" />
+					
 					<?php echo JHtml::_('form.token'); ?>
 				</form>
 			</div>
