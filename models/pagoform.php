@@ -256,7 +256,7 @@ class FlotaModelPagoForm extends JModelForm
 		}
 	}
 	
-	public function getURL(){
+	/*public function getURL(){
 		return "https://secure.placetopay.com/redirection/api/session/";
 	}
 
@@ -266,6 +266,18 @@ class FlotaModelPagoForm extends JModelForm
 
 	public function gettrankey(){
 		return "3cTH56pOprppMef3";
+	}*/
+
+	public function getURL(){
+		return "https://test.placetopay.com/redirection/api/session/";
+	}
+
+	public function getlogin(){
+		return "bb64e391a1980021bce85e8b022e82af";
+	}
+
+	public function gettrankey(){
+		return "Tu138rtLze59PC98";
 	}
 
 	public function getCanSave(){
