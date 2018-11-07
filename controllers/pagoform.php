@@ -94,6 +94,7 @@ class FlotaControllerPagoForm extends FlotaController
 		$puntos_totales   = 0;
 		$descripcion_pago = '';
 
+
 		#INFORMACION DE LAS SILLAS
 		$sillas_ida     = explode(",", $tiquete['sillas_ida']);
 		$sillas_regreso = explode(",", $tiquete['sillas_regreso']);
@@ -311,7 +312,7 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		//return $request;
 
-		$url = 'https://test.placetopay.com/redirection/api/session';
+		$url = $model_p->getURL();
 		
 		
 		//Se inicia. el objeto CUrl
@@ -477,7 +478,7 @@ class FlotaControllerPagoForm extends FlotaController
 		//return $request;
 		
 		
-		$url = 'https://test.placetopay.com/redirection/api/session/'.$requestId;
+		$url = $model_p->getURL().$requestId;
 		
 		
 		//Se inicia. el objeto CUrl
@@ -506,10 +507,8 @@ class FlotaControllerPagoForm extends FlotaController
 		$result = json_decode($result_Json);
 		if($result->status->status != 'FAILED')
 		{
-			print_r('entro diferente de fallida');
 			if($result->payment!=null)
 			{
-				print_r('entro payment no null');
 				$respuesta_transaccion 	   = $result;
 				//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
 				$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
@@ -517,11 +516,24 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['id']	            	= $data->id;
 				$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
 				$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->payment[0]->authorization;
+				$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+				$tiquete['referencia']     = $referencia;
+				$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+				$tiquete['puntos_totales'] = $puntos_totales;
+				$session->set('tiquete', $tiquete);
 				if($respuesta_transaccion->payment[0]->status->status == 'APPROVED')
 				{
-					print_r('entro aprobada');
+					
 					$pagos['nombre_estado'] 		= 'Aprobado';
 					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+
+					$puntos['clientes_id'] = $user->id;
+					$puntos['puntos'] = $tiquete['puntos_totales'];
+					$puntos['estado'] = 1;
+					$puntos['fecha']= date('Y-m-d');
+					$Monpu = $model_pu->validate($formpu,$puntos);
+					$PunSav = $model_pu->save($Monpu);
+					
 				}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
 				{
 					print_r('entro declinada');
@@ -535,27 +547,203 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
 				$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
 				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
-				$pagos['referencia'] 			= $referencia;
+				$pagos['referencia'] 			= $idTransaccion;
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
+				$email['pago']					= $pagos['id'];
+				$this->notificarActualizacion($email);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 				 
+			}else{
+				$pagos['id_transaccion'] 		= $result->requestId;
+				$pagos['estados_id']		 	= '4';
+				$pagos['nombre_estado'] 		= 'Cancelada';
+				$pagos['mensaje'] 			  	= 'No se realiza Pago';
+				$pagos['id']	            	= $data->id;
+				$pagos['codigo_respuesta'] 		= $result->status->reason;
+				$pagos['codigo_trazabilidad'] 	= "000000";
+				$pagos['codigo_autorizacion']  	= "000000";
+				$pagos['fecha_procesamiento'] 	= $result->status->date;
+				$pagos['nombre_banco'] 			= "No realizo pago";
+				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+				$pagos['referencia'] 			= $rest['reference'];
+				$formp2 						= $model_p->getForm();
+				$Mopag2  						= $model_p->validate($formp2, $pagos);
+				$PagSav   						= $model_p->save($Mopag2);
+				$this->notificarActualizacion($email);
+				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
+				return;
 			}
+		}else{
+			$pagos['id_transaccion'] 		= $result->requestId;
+			$pagos['estados_id']		 	= '4';
+			$pagos['id']	            	= $data->id;
+			$pagos['codigo_respuesta'] 		= $result->status->reason;
+			$pagos['codigo_trazabilidad'] 	= "000000";
+			$pagos['codigo_autorizacion']  	= "000000";
+			$pagos['fecha_procesamiento'] 	= $result->status->date;
+			$pagos['nombre_banco'] 			= "No realizo pago";
+			$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+			$pagos['referencia'] 			= $idTransaccion;
+			$formp2 						= $model_p->getForm();
+			$Mopag2  						= $model_p->validate($formp2, $pagos);
+			$PagSav   						= $model_p->save($Mopag2);
+			$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 		}
 	}
 
-	public function actualizarnotificacion(){
+	public function actualizarpagoP2p(){
+		//Recibe el Json
 		$rest=json_decode(file_get_contents('php://input'), true);
-		print_r($rest);
-		
-		$val = sha1 ($rest['requestId'] . $rest['status']['status'] . $rest['status']['date'] . '024h1IlD');
-		
+		$session  = JFactory::getSession();
+		$user     = JFactory::getUser();
+		$tiquete  = $session->get('tiquete');
+		$model_p  = $this->getModel('PagoForm', 'FlotaModel');
+		// Se crea el hash
+		$val = sha1 ($rest['requestId'] . $rest['status']['status'] . $rest['status']['date'] . $model_p->gettrankey());
+		/*se valida el signature enviado por placetopay, con el armado para validar que la peticion
+		viene de Placetopay*/
+		$data 		= 	$model_p->getPago($rest['reference']);
 		if ($val==$rest['signature']) {
-		
+			print_r("entro");
+			$requestId 	=	$data->id_transaccion;
+			$model_pu = JModelLegacy::getInstance('Punto', 'FlotaModel');
+			$formp2   = $model_p->getForm();
+			$formpu   = $model_pu->getForm();
+
+			$app       = JFactory::getApplication()->input;
+			$component 		= $app->get('option');
+			$params 		= JComponentHelper::getParams($component);
 			
-			echo $rest['requestId'];
+			// consultar transaccion.
+			$seed = date('c');
+			if (function_exists('random_bytes')) {
+			$nonce = bin2hex(random_bytes(16));
+			} elseif (function_exists('openssl_random_pseudo_bytes')) {
+				$nonce = bin2hex(openssl_random_pseudo_bytes(16));
+			} else {
+				$nonce = mt_rand();
+			}
 			
+			$secretKey = $model_p->gettrankey();
+			
+			$nonceBase64 = base64_encode($nonce);
+			
+			$tranKey = base64_encode(sha1($nonce . $seed . $secretKey, true));
+			
+			$request = [
+				'auth' => [
+					'login' => $model_p->getlogin(),
+					'seed' => date('c'),
+					'nonce' => $nonceBase64,
+					'tranKey' => $tranKey,
+					],
+			];
+			//return $request;
+			
+			
+			$url = $model_p->getURL().$rest['requestId'];
+			
+			
+			//Se inicia. el objeto CUrl
+			$ch = curl_init($url);
+			
+			//creamos el json a partir del arreglo
+			$jsonDataEncoded = json_encode($request);
+			
+			
+			//Indicamos que nuestra petición sera Post
+			curl_setopt($ch, CURLOPT_POST, 1);
+			
+			//para que la peticion no imprima el resultado como un echo comun, y podamos manipularlo
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			
+			//Adjuntamos el json a nuestra petición
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+			
+			
+				//Agregar los encabezados del contenido
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'User-Agent: cUrl Testing'));
+			
+			//Ejecutamos la petición
+			$result_Json = curl_exec($ch);
+			//var_dump($tiquete);
+			$result = json_decode($result_Json);
+			if($result->status->status != 'FAILED')
+			{
+				if($result->payment!=null)
+				{
+					$respuesta_transaccion 	   = $result;
+					//OBTENGO LA RESPUESTA DE LA CREACION DE LA TRANSACCION
+					$pagos['id_transaccion'] 		= $respuesta_transaccion->requestId;
+					$pagos['estados_id']		 	= '2';
+					$pagos['id']	            	= $data->id;
+					$pagos['codigo_respuesta'] 		= $respuesta_transaccion->status->reason;
+					$pagos['codigo_trazabilidad'] 	= $respuesta_transaccion->payment[0]->authorization;
+					if($respuesta_transaccion->payment[0]->status->status == 'APPROVED')
+					{
+						print_r('entro aprobada');
+						$pagos['nombre_estado'] 		= 'Aprobado';
+						$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+
+						$puntos['clientes_id'] = $user->id;
+						$puntos['puntos'] = $tiquete['puntos_totales'];
+						$puntos['estado'] = 1;
+						$puntos['fecha']= date('Y-m-d');
+						$Monpu = $model_pu->validate($formpu,$puntos);
+						$PunSav = $model_pu->save($Monpu);
+
+						$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+						$tiquete['referencia']     = $rest['reference'];
+						$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+						$tiquete['puntos_totales'] = 0;
+						$session->set('tiquete', $tiquete);
+					}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
+					{
+						print_r('entro declinada');
+						$pagos['nombre_estado'] 		= 'Rechazada';
+						$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+					}else{
+						$pagos['nombre_estado'] 		= 'Pendiente';
+						$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
+					}
+					$tiquete['id_transaccion'] = $respuesta_transaccion->requestId;
+					$tiquete['referencia']     = $rest['reference'];
+					$tiquete['direccion_ip']   = $_SERVER['REMOTE_ADDR'];
+					$tiquete['puntos_totales'] = $puntos_totales;
+					$session->set('tiquete', $tiquete);
+					$pagos['codigo_autorizacion']  	= $respuesta_transaccion->payment[0]->authorization;
+					$pagos['fecha_procesamiento'] 	= $respuesta_transaccion->status->date;
+					$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
+					$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+					$pagos['referencia'] 			= $rest['reference'];
+					$formp2 						= $model_p->getForm();
+					$Mopag2  						= $model_p->validate($formp2, $pagos);
+					$PagSav   						= $model_p->save($Mopag2);
+					$this->notificarActualizacion($email);
+					
+				}else{
+					$pagos['id_transaccion'] 		= $result->requestId;
+					$pagos['estados_id']		 	= '4';
+					$pagos['id']	            	= $data->id;
+					$pagos['nombre_estado'] 		= 'Cancelada';
+					$pagos['mensaje'] 			  	= 'No se realiza Pago';
+					$pagos['codigo_respuesta'] 		= $result->status->reason;
+					$pagos['codigo_trazabilidad'] 	= "000000";
+					$pagos['codigo_autorizacion']  	= "000000";
+					$pagos['fecha_procesamiento'] 	= $result->status->date;
+					$pagos['nombre_banco'] 			= "No realizo pago";
+					$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+					$pagos['referencia'] 			= $rest['reference'];
+					$formp2 						= $model_p->getForm();
+					$Mopag2  						= $model_p->validate($formp2, $pagos);
+					$PagSav   						= $model_p->save($Mopag2);
+					$this->notificarActualizacion($email);
+					return;
+				}
+		}
+
 		}else{
 		
 			echo '<br>';
