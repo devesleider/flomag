@@ -373,7 +373,7 @@ class FlotaControllerPagoForm extends FlotaController
 				$PagSav   						= $model_p->save($Mopag2);
 				#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
 				$email['cliente']       = $ObTiq['clientes_id'];
-				$email['pago']	    	= $ObTiq['pagos_id'];
+				$email['pago']	    	= $referencia;
 				$email['tiquete_ida']   = $TiqSav;
 				$email['tiquete_reg']   = $TiqSav2;
 				$this->notificarEmpresa($email);
@@ -557,10 +557,23 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
 				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
 				$pagos['referencia'] 			= $idTransaccion;
+				$pagos['fecha'] 				= $respuesta_transaccion->payment[0]->status->date;
+				$pagos['ip'] 					= $respuesta_transaccion->request->ipAddress;
+				$pagos['total'] 				= $respuesta_transaccion->request->payment->amount->total;
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
 				$email['pago']					= $pagos['id'];
+
+				if($respuesta_transaccion->payment[0]->paymentMethod == 'card'){
+					$pagos['Mpago']	= 'Tarjeta de Crédito';
+				}elseif($respuesta_transaccion->payment[0]->paymentMethod == 'pse'){
+					$pagos['Mpago']	= 'PSE';
+				}else{
+					$pagos['Mpago']	= 'Efectivo';
+				}
+
+				$this->notificarEmpresa($pagos);
 				$this->notificarActualizacion($email);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 				 
@@ -927,28 +940,28 @@ class FlotaControllerPagoForm extends FlotaController
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Razón Social</strong></td><td>ALIANZA NACIONAL DE CAPITALES SAS</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Número de Factura</strong></td>';
-		$mensaje .= '<td>'.$ObPago->id_transaccion.'</td>';
+		$mensaje .= '<td>'.$datos->id_transaccion.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Referencia</strong></td>';
-		$mensaje .= '<td>'. $ObPago->id.'</td>';
+		$mensaje .= '<td>'. $datos->referencia.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Código Único de Seguimiento</strong></td>';
 		$mensaje .= '<td>'.$ObPago->codigo_trazabilidad.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Fecha de la Transacción</strong></td>';
-		$mensaje .= '<td>'.$ObPago->fecha_transaccion.'</td>';
+		$mensaje .= '<td>'.$datos->fecha.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Metodo de Pago</strong></td>';
-		$mensaje .= '<td>'.$metodos_pago[$ObPago->metodo_pago].'</td>';
+		$mensaje .= '<td>'.$datos->Mpago.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Estado</strong></td>';
-		$mensaje .= '<td>'.$ObPago->nombre_estado.'</td>';
+		$mensaje .= '<td>'.$datos->nombre_estado.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Dirección IP</strong></td>';
-		$mensaje .= '<td>'.$ObPago->ip.'</td>';
+		$mensaje .= '<td>'.$datos->ip.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Total</strong></td>';
-		$mensaje .= '<td>$'.$ObPago->valor.'</td>';
+		$mensaje .= '<td>$'.$datos->total.'</td>';
 		$mensaje .= '</tr>';
 		$mensaje .= '</table>';
 		

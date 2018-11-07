@@ -91,21 +91,12 @@ $doc->addScript(JUri::base() . '/components/com_flota/assets/js/form.js');
 		</div>
 		<div class="informacion-tarjeta">
 			<div>
-<<<<<<< HEAD
 				<h4><b><input type="radio" class="mpago" name="mpago" value="efectivo" required>Efectivo</b><br></h4>
 				<h4><b><input type="radio" class="mpago" name="mpago" value="otro" requireds> Tarjeta de credito o PSE</b><br></h4>
 			</div>
 			<div class="metodo-pago">
 				<img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="150" height="75">
 				<img src="/images/logo-flota-magdalena.png" width="150" height="75">
-=======
-				<h4><input type="radio" class="mpago" name="mpago" value="efectivo" required><b>Efectivo></b><br></h4>
-				<h4><input type="radio" class="mpago" name="mpago" value="otro" requireds><b>Tarjeta de credito o PSE</b><br></h4>
-			</div>
-			<div class="metodo-pago">
-				<img src="https://static.placetopay.com/redirect/images/providers/placetopay.svg" width="200" height="100">
-				<img src="flota.png" width="200" height="100">
->>>>>>> 8b306c2cfd7fce393c7734af13fae45308fdf258
 			</div>
 			<div>
 				<a href="FAQ.pdf" target="_blank">
