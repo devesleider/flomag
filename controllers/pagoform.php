@@ -105,7 +105,7 @@ class FlotaControllerPagoForm extends FlotaController
 		$pago['valor']       = $tiquete['total'];
 		$pago['fecha']   	 = date('Y-m-d H:i:s');
 		$pago['estados_id']  = 0;
-		$pago['metodo_pago'] = $tiquete['metodo_pago'];
+		$pago['metodo_pago'] = '1';
 		$pago['subtotal']	 = $tiquete['subtotal'];
 		$pago['bonos_id']	 = $tiquete['bonos_id'];
 		$pago['descuento']   = $tiquete['descuento'];
@@ -127,6 +127,7 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		$MoTiq  = $model_t->validate($formt, $ObTiq);
 		$TiqSav = $model_t->save($MoTiq);
+		$session->set('TiqSav', $TiqSav);
 
 		#REGISTRO TIQUETE DE REGRESO SI EXISTE
 		if($tiquete['ruta_regreso']!=null){
@@ -143,6 +144,7 @@ class FlotaControllerPagoForm extends FlotaController
 			$puntos_totales	+= round($ObRuta->distancia/10);
 
 			$descripcion_pago           .= ' Viaje Regreso: '.$ObRuta->origen.' - '.$ObRuta->destino;
+			$session->set('TiqSav2', $TiqSav2);
 		}
 
 		//REGISTRO DE SILLA
@@ -164,8 +166,8 @@ class FlotaControllerPagoForm extends FlotaController
 
 		$form_titular = $titular->getForm();
 		//if (!$form){
-	//		throw new Exception($model_p->getError(), 500);
-//		}
+		//		throw new Exception($model_p->getError(), 500);
+		//		}
 
 		if (!$form_titular){
 			throw new Exception($titular->getError(), 500);
@@ -193,6 +195,7 @@ class FlotaControllerPagoForm extends FlotaController
 
 			$mpago = $jinput->post->get('mpago', '', 'STRING');
 			$expiration;
+			$mpago;
 
 			$session->set('tiquete', $tiquete);
 
@@ -242,8 +245,10 @@ class FlotaControllerPagoForm extends FlotaController
 
 			if($mpago == 'efectivo'){
 				$expiration = date('c', strtotime('+10 hour'));
+				$mpago = '_ATH_,T1_BC';
 			}else{
 				$expiration = date('c', strtotime('+30 minute'));
+				$mpago = 'CR_VS,CR_DN,CR_AM,RM_MC';
 			}
 
 		//SE GUARDAN LOS DATOS DEL TITULAR
@@ -371,12 +376,12 @@ class FlotaControllerPagoForm extends FlotaController
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
-				#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
+				/*#DATOS PARA ENVIAR NOTIFICACION A LA EMPRESA
 				$email['cliente']       = $ObTiq['clientes_id'];
 				$email['pago']	    	= $referencia;
 				$email['tiquete_ida']   = $TiqSav;
 				$email['tiquete_reg']   = $TiqSav2;
-				$this->notificarEmpresa($email);
+				$this->notificarEmpresa($email);*/
 
 				$view = $this->getView('PagoForm','html');
 				$view->confirmacion = $result;
@@ -444,7 +449,9 @@ class FlotaControllerPagoForm extends FlotaController
 
 	
 	public function confirmacion(){
-		$idTransaccion = $_GET['referencia']; 
+
+		$idTransaccion = $_GET['referencia'];
+	
 		$session  = JFactory::getSession();
 		$user     = JFactory::getUser();
 		$tiquete  = $session->get('tiquete');
@@ -545,7 +552,7 @@ class FlotaControllerPagoForm extends FlotaController
 					
 				}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
 				{
-					print_r('entro declinada');
+					
 					$pagos['nombre_estado'] 		= 'Rechazada';
 					$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
 				}else{
@@ -557,9 +564,11 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['nombre_banco'] 			= $respuesta_transaccion->payment[0]->issuerName;
 				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
 				$pagos['referencia'] 			= $idTransaccion;
-				$pagos['fecha'] 				= $respuesta_transaccion->payment[0]->status->date;
-				$pagos['ip'] 					= $respuesta_transaccion->request->ipAddress;
 				$pagos['total'] 				= $respuesta_transaccion->request->payment->amount->total;
+				$pagos['cliente'] 				= $user->id;
+				$pagos['tiquete_ida'] 			= $session->get('TiqSav');
+				$pagos['tiquete_reg'] 			= $session->get('TiqSav2');
+
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
@@ -572,11 +581,35 @@ class FlotaControllerPagoForm extends FlotaController
 				}else{
 					$pagos['Mpago']	= 'Efectivo';
 				}
-
+				
+				
 				$this->notificarEmpresa($pagos);
-				$this->notificarActualizacion($email);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 				 
+			}elseif($result->status->status == 'PENDING'){
+				$pagos['id_transaccion'] 		= $result->requestId;
+				$pagos['estados_id']		 	= '4';
+				$pagos['nombre_estado'] 		= 'Pendiente';
+				$pagos['mensaje'] 			  	= $result->status->message;
+				$pagos['id']	            	= $data->id;
+				$pagos['codigo_respuesta'] 		= $result->status->reason;
+				$pagos['codigo_trazabilidad'] 	= "000000";
+				$pagos['codigo_autorizacion']  	= "000000";
+				$pagos['fecha_procesamiento'] 	= $result->status->date;
+				$pagos['nombre_banco'] 			= "Pendiente";
+				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
+				$pagos['referencia'] 			= $rest['reference'];
+				$pagos['total'] 				= $result->request->payment->amount->total;
+				$pagos['cliente'] 				= $user->id;
+				$pagos['tiquete_ida'] 			= $session->get('TiqSav');
+				$pagos['tiquete_reg'] 			= $session->get('TiqSav2');
+				$formp2 						= $model_p->getForm();
+				$Mopag2  						= $model_p->validate($formp2, $pagos);
+				$PagSav   						= $model_p->save($Mopag2);
+
+				$this->notificarEmpresa($pagos);
+				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
+				return;
 			}else{
 				$pagos['id_transaccion'] 		= $result->requestId;
 				$pagos['estados_id']		 	= '4';
@@ -593,7 +626,7 @@ class FlotaControllerPagoForm extends FlotaController
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
-				$this->notificarActualizacion($email);
+				//$this->notificarActualizacion($email);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
 				return;
 			}
@@ -723,7 +756,7 @@ class FlotaControllerPagoForm extends FlotaController
 						$session->set('tiquete', $tiquete);
 					}elseif($respuesta_transaccion->payment[0]->status->status == 'REJECTED')
 					{
-						print_r('entro declinada');
+						
 						$pagos['nombre_estado'] 		= 'Rechazada';
 						$pagos['mensaje'] 			  	= $respuesta_transaccion->payment[0]->status->message;
 					}else{
@@ -890,8 +923,9 @@ class FlotaControllerPagoForm extends FlotaController
 		$this->setRedirect(JRoute::_($url, false));
 	}
 
-	public function notificarEmpresa($datos = array()){
+	public function notificarEmpresa($datos){
 		#PARAMETROS BASICOS
+		
 		$app         = JFactory::getApplication()->input;
 		
 		$model_p   = $this->getModel('PagoForm', 'FlotaModel');
@@ -903,17 +937,19 @@ class FlotaControllerPagoForm extends FlotaController
 		$model_r   = JModelLegacy::getInstance('Ruta', 'FlotaModel');
 		$model_s2   = JModelLegacy::getInstance('Silla', 'FlotaModel'); 
 		$model_r2   = JModelLegacy::getInstance('Ruta', 'FlotaModel');
+		$cliente 	=$model_c->getCliente($datos["cliente"]);
 
-		$ObCliente   = $model_c->getData($datos["cliente"]);
+		$ObCliente   = $model_c->getData($cliente["id"]);
 		$ObCliente2  = $model_c2->getCliente($ObCliente->usuario);
-		$ObPago      = $model_p->getPago($datos["pago"]);
+		$ObPago      = $model_p->getPago($datos["referencia"]);
+
 		$ObTiquete   = $model_t->getData($datos["tiquete_ida"]);
 		$ObSillas   = $model_s->getSillas($datos["tiquete_ida"]);
 		$ObTiquete2 = $model_t2->getData($datos["tiquete_reg"]);
 		$ObSillas2  = $model_s2->getSillas($datos["tiquete_reg"]);
 		$ObRutaIda  = $model_r->getData($ObTiquete->ruta);
 		$ObRutaReg  = $model_r2->getData($ObTiquete2->ruta);
-
+		
 		$metodos_pago = array("1"=>"Tarjeta de Crédito","2"=>"Tarjeta Débito","3"=>"Puntos Flota");
 
 		foreach ($ObSillas as $value) {
@@ -940,28 +976,28 @@ class FlotaControllerPagoForm extends FlotaController
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Razón Social</strong></td><td>ALIANZA NACIONAL DE CAPITALES SAS</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Número de Factura</strong></td>';
-		$mensaje .= '<td>'.$datos->id_transaccion.'</td>';
+		$mensaje .= '<td>'.$datos['id_transaccion'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Referencia</strong></td>';
-		$mensaje .= '<td>'. $datos->referencia.'</td>';
+		$mensaje .= '<td>'. $datos['referencia'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Código Único de Seguimiento</strong></td>';
 		$mensaje .= '<td>'.$ObPago->codigo_trazabilidad.'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Fecha de la Transacción</strong></td>';
-		$mensaje .= '<td>'.$datos->fecha.'</td>';
+		$mensaje .= '<td>'.$datos['fecha_procesamiento'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Metodo de Pago</strong></td>';
-		$mensaje .= '<td>'.$datos->Mpago.'</td>';
+		$mensaje .= '<td>'.$datos['Mpago'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Estado</strong></td>';
-		$mensaje .= '<td>'.$datos->nombre_estado.'</td>';
+		$mensaje .= '<td>'.$datos['nombre_estado'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Dirección IP</strong></td>';
-		$mensaje .= '<td>'.$datos->ip.'</td>';
+		$mensaje .= '<td>'.$datos['ip'].'</td>';
 		$mensaje .= '</tr><tr>';
 		$mensaje .= '<td style="font-size: 13px;text-align: left;"><strong>Total</strong></td>';
-		$mensaje .= '<td>$'.$datos->total.'</td>';
+		$mensaje .= '<td>$'.$datos['total'].'</td>';
 		$mensaje .= '</tr>';
 		$mensaje .= '</table>';
 		
@@ -1046,7 +1082,7 @@ class FlotaControllerPagoForm extends FlotaController
 		$mail->IsHTML(True);
 		$mail->setBody(nl2br($mensaje));
 		$sent = $mail->Send();
-
+		
 		$mail2    = JFactory::getMailer();
 		$mail2->addRecipient($ObCliente2['email']);
 		$mail2->setSubject($asunto2);
