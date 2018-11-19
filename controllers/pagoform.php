@@ -1040,7 +1040,7 @@ class FlotaControllerPagoForm extends FlotaController
 
 		#ENVIO DE MENSAJE
 		$mail    = JFactory::getMailer();
-		$mail->addRecipient($recipients);
+		$mail->addRecipient("ing2enlacesoft@gmail.com");
 		$mail->setSubject($asunto);
 		$mail->setBody($mensaje);
 		$mail->IsHTML(True);
@@ -1102,7 +1102,7 @@ class FlotaControllerPagoForm extends FlotaController
 
 		#ENVIO DE MENSAJE
 		$mail    = JFactory::getMailer();
-		$mail->addRecipient($recipients);
+		$mail->addRecipient('ing2enlacesoft@gmail.com');
 		$mail->setSubject($asunto);
 		$mail->setBody($mensaje);
 		$mail->IsHTML(True);
