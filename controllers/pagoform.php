@@ -127,7 +127,6 @@ class FlotaControllerPagoForm extends FlotaController
 		
 		$MoTiq  = $model_t->validate($formt, $ObTiq);
 		$TiqSav = $model_t->save($MoTiq);
-		$session->set('TiqSav', $TiqSav);
 
 		#REGISTRO TIQUETE DE REGRESO SI EXISTE
 		if($tiquete['ruta_regreso']!=null){
@@ -319,9 +318,10 @@ class FlotaControllerPagoForm extends FlotaController
 		],
 		
 			'expiration' => $expiration,
-			'returnUrl' => $params->get('pagos_respuesta')."&referencia=".$referencia,
+			'returnUrl' => $params->get('pagos_respuesta')."&referencia=".$referencia."&TiqSav=".$TiqSav."&TiqSav2=".$TiqSav2."&clientes_id=".$user->id,
 			'ipAddress' => $_SERVER['REMOTE_ADDR'],
 			'userAgent' => $_SERVER['HTTP_USER_AGENT'],
+			'paymentMethod' => $mpago
 		];
 		
 		//return $request;
@@ -451,12 +451,13 @@ class FlotaControllerPagoForm extends FlotaController
 	public function confirmacion(){
 
 		$idTransaccion = $_GET['referencia'];
-	
+		$TiqSav = $_GET['TiqSav'];
+		$TiqSav2 = $_GET['TiqSav2'];
+		$cliente_id = $_GET['clientes_id'];
 		$session  = JFactory::getSession();
 		$user     = JFactory::getUser();
-		$tiquete  = $session->get('tiquete');
 		$model_p  = $this->getModel('PagoForm', 'FlotaModel');
-
+		
 		$data 		= 	$model_p->getPago($idTransaccion);
 		$requestId 	=	$data->id_transaccion;
 		$model_pu = JModelLegacy::getInstance('Punto', 'FlotaModel');
@@ -565,10 +566,10 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
 				$pagos['referencia'] 			= $idTransaccion;
 				$pagos['total'] 				= $respuesta_transaccion->request->payment->amount->total;
-				$pagos['cliente'] 				= $user->id;
-				$pagos['tiquete_ida'] 			= $session->get('TiqSav');
-				$pagos['tiquete_reg'] 			= $session->get('TiqSav2');
-
+				$pagos['cliente'] 				= $cliente_id;
+				$pagos['tiquete_ida'] 			= $TiqSav;
+				$pagos['tiquete_reg'] 			= $TiqSav2;
+				
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
@@ -581,7 +582,6 @@ class FlotaControllerPagoForm extends FlotaController
 				}else{
 					$pagos['Mpago']	= 'Efectivo';
 				}
-				
 				
 				$this->notificarEmpresa($pagos);
 				$this->setRedirect('https://www.flotamagdalena.com/mis-pagos/cliente?layout=pago&pid='.$idTransaccion);
@@ -600,9 +600,9 @@ class FlotaControllerPagoForm extends FlotaController
 				$pagos['ip'] 			  		= $_SERVER['REMOTE_ADDR'];
 				$pagos['referencia'] 			= $rest['reference'];
 				$pagos['total'] 				= $result->request->payment->amount->total;
-				$pagos['cliente'] 				= $user->id;
-				$pagos['tiquete_ida'] 			= $session->get('TiqSav');
-				$pagos['tiquete_reg'] 			= $session->get('TiqSav2');
+				$pagos['cliente'] 				= $cliente_id;
+				$pagos['tiquete_ida'] 			= $TiqSav;
+				$pagos['tiquete_reg'] 			= $TiqSav2;
 				$formp2 						= $model_p->getForm();
 				$Mopag2  						= $model_p->validate($formp2, $pagos);
 				$PagSav   						= $model_p->save($Mopag2);
@@ -1072,11 +1072,10 @@ class FlotaControllerPagoForm extends FlotaController
 		$mensaje .= '<td>'.$ObCliente2['email'].'</td>';
 		$mensaje .= '</tr>';
 		$mensaje .= '</table>';
-			
 
 		#ENVIO DE MENSAJE
 		$mail    = JFactory::getMailer();
-		$mail->addRecipient("ing2enlacesoft@gmail.com");
+		$mail->addRecipient($recipients);
 		$mail->setSubject($asunto);
 		$mail->setBody($mensaje);
 		$mail->IsHTML(True);
@@ -1138,7 +1137,7 @@ class FlotaControllerPagoForm extends FlotaController
 
 		#ENVIO DE MENSAJE
 		$mail    = JFactory::getMailer();
-		$mail->addRecipient('ing2enlacesoft@gmail.com');
+		$mail->addRecipient($recipients);
 		$mail->setSubject($asunto);
 		$mail->setBody($mensaje);
 		$mail->IsHTML(True);
